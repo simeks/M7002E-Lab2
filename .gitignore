@@ -1,0 +1,8 @@
+dependencies/SDL2-2.0.1/
+dependencies/glew/
+t2-output/
+.tundra2.dag
+.tundra2.dag.json
+.tundra2.digestcache
+.tundra2.scancache
+.tundra2.state
