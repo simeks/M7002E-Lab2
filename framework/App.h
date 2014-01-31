@@ -3,6 +3,7 @@
 
 
 struct SDL_Window;
+class RenderDevice;
 class App
 {
 public:
@@ -11,9 +12,6 @@ public:
 
 	/// Runs the application, this will not return until the application stops.
 	void Run();
-
-	/// @brief Specifies the clear color for when clearing the back buffer. 
-	void SetClearColor(float r, float g, float b, float a);
 
 	/// @brief Specifies the window title.
 	void SetWindowTitle(const char* title);
@@ -37,7 +35,9 @@ protected:
 	SDL_Window* _window;
 	bool _running; // Specifies whether the framework is currently running, setting this to false will exit the application.
 
-	uint32_t _last_tick;
+	uint32_t _last_tick; // Keeps of last tick count for calculating frame time.
+
+	RenderDevice* _render_device; // The render device responsible for low-level rendering calls.
 };
 
 

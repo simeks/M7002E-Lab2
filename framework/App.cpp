@@ -1,13 +1,15 @@
 #include "Common.h"
 
 #include "App.h"
+#include "RenderDevice.h"
 
 #include <SDL.h>
 #include <SDL_opengl.h>
 
 App::App()
 	: _window(NULL),
-	_running(false)
+	_running(false),
+	_render_device(NULL)
 {
 }
 App::~App()
@@ -47,10 +49,6 @@ void App::Run()
 	Shutdown();
 }
 
-void App::SetClearColor(float r, float g, float b, float a)
-{
-	glClearColor(r, g, b, a);
-}
 void App::SetWindowTitle(const char* title)
 {
 	SDL_SetWindowTitle(_window, title);
@@ -84,25 +82,20 @@ bool App::InitializeSDL(uint32_t window_width, uint32_t window_height)
 
 	// Create the opengl context for our main window.
 	SDL_GL_CreateContext(_window);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Set the clear color to black
 
-#ifndef PLATFORM_MACOSX // There's no real use for GLEW on OSX so we skip it.
-	// Initialize glew, which handles opengl extensions
-	GLenum err = glewInit(); 
-	if(err != GLEW_OK)
-	{
-		debug::Printf("[Error] glewInit failed: %s\n", glewGetErrorString(err));
+	// Initialize our opengl device
+	_render_device = new RenderDevice();
+	if(!_render_device->Initialize())
 		return false;
-	}
-#endif
-
-	const GLubyte *version = glGetString(GL_VERSION);
-	debug::Printf("OpenGL Version: %s\n", version);
 
 	return true;
 }
 void App::ShutdownSDL()
 {
+	_render_device->Shutdown();
+	delete _render_device;
+	_render_device = NULL;
+
 	if(_window)
 	{
 		SDL_DestroyWindow(_window);

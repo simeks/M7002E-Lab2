@@ -7,13 +7,15 @@
 #include <windows.h>
 #endif
 
-#include <stdint.h>
-
 #ifdef PLATFORM_MACOSX
 #include <OpenGL/gl.h> // No GLEW on osx
 #else
 #include <gl/glew.h>
 #endif
+
+#include <stdint.h>
+#include <assert.h>
+#include <vector>
 
 #include "Debug.h"
 #include "Math.h"

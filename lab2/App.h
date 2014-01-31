@@ -17,11 +17,6 @@ public:
 	Lab2App();
 	~Lab2App();
 
-	/// @brief Draws the specified primitive at the specified position.
-	/// @param position Position for the primitive.
-	/// @param rotation Rotation in angles: (yaw, pitch, roll)
-	void DrawPrimitive(const Primitive& primitive, const Vec3& position, const Vec3& rotation);
-	
 
 protected:
 	bool Initialize();
@@ -34,7 +29,7 @@ protected:
 	void RenderScene();
 	
 private:
-	PrimitiveFactory _primitive_factory;
+	PrimitiveFactory* _primitive_factory;
 
 	Viewport _viewport;
 	

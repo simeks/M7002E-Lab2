@@ -4,8 +4,8 @@
 /// @brief Struct representing a primitive that can be rendered.
 struct Primitive
 {
-	GLuint vertex_buffer; // VBO holding the vertex positions. Expecting the element format: float x, y, z
-	GLuint color_buffer; // VBO holding the vertex colors. Expecting the element format: float r, g, b, a
+	int vertex_buffer; // VBO holding the vertex positions. Expecting the element format: float x, y, z
+	int color_buffer; // VBO holding the vertex colors. Expecting the element format: float r, g, b, a
 
 	uint32_t vertex_count; // Number of vertices for this primitive.
 
@@ -22,11 +22,13 @@ struct Color
 	float r, g, b, a;
 };
 
+class RenderDevice;
+
 /// @brief Factory used for creating primitives that can be rendered onto the scene.
 class PrimitiveFactory
 {
 public:
-	PrimitiveFactory();
+	PrimitiveFactory(RenderDevice* _render_device);
 	~PrimitiveFactory();
 
 	/// @brief Creates a square based 3d pyramid.
@@ -59,11 +61,7 @@ public:
 
 
 private:
-	/// @brief Creates a new vertex buffer.
-	/// @param size The total size of the buffer in bytes.
-	/// @param vertex_data A pointer to the data that should be copied to the buffer.
-	///						NULL means the buffer will be empty.
-	GLuint CreateVertexBuffer(uint32_t size, void* vertex_data);
+	RenderDevice* _render_device;
 
 };
 
