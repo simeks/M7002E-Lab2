@@ -16,8 +16,15 @@
 #include <stdint.h>
 #include <assert.h>
 #include <vector>
+#include <math.h>
 
 #include "Debug.h"
-#include "Math.h"
+
+
+// Constants
+#define MATH_PI 3.14159265358979323846
+#define MATH_TWO_PI (MATH_PI * 2.0)
+#define MATH_HALF_PI (MATH_PI * 0.5)
+
 
 #endif // __COMMON_H__

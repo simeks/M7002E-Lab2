@@ -77,7 +77,7 @@ int RenderDevice::CreateVertexBuffer(uint32_t size, void* vertex_data)
 }
 void RenderDevice::ReleaseVertexBuffer(int vertex_buffer)
 {
-	assert(vertex_buffer < _vertex_buffers.size());
+	assert(vertex_buffer >= 0 && (uint32_t)vertex_buffer < _vertex_buffers.size());
 
 	// Delete the buffer
 	glDeleteBuffers(1, &_vertex_buffers[vertex_buffer]);
