@@ -31,6 +31,7 @@ struct Vec4
 
 namespace vector
 {
+	/// @brief Normalizes the specified vector.
 	void Normalize(Vec3& vector);
 	
 	/// @brief Calculates the cross product of the two vectors.
@@ -39,6 +40,7 @@ namespace vector
 	/// @brief Calculates the dot product of the two vectors.
 	float Dot(const Vec3& lhs, const Vec3& rhs);
 
+	/// @brief Subtracts two vectors in the specified order.
 	Vec3 Subtract(const Vec3& lhs, const Vec3& rhs);
 };
 

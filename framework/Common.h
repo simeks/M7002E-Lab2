@@ -18,13 +18,14 @@
 #include <vector>
 #include <math.h>
 
-#include "Debug.h"
-
-
 // Constants
 #define MATH_PI 3.14159265358979323846
 #define MATH_TWO_PI (MATH_PI * 2.0)
 #define MATH_HALF_PI (MATH_PI * 0.5)
 
+
+#include "Debug.h"
+#include "Vector.h"
+#include "Matrix.h"
 
 #endif // __COMMON_H__
