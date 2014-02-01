@@ -125,6 +125,61 @@ Mat4x4 matrix::CreatePerspective(float fovy, float aspect, float znear, float zf
 	return result;
 }
 
+Mat4x4 matrix::LookAt(const Vec3& eye, const Vec3& at, const Vec3& up)
+{
+	// http://www.cs.virginia.edu/~gfx/Courses/1999/intro.fall99.html/lookat.html
+
+	// The direction vector
+	Vec3 f = vector::Subtract(at, eye);
+	vector::Normalize(f);
+
+	// The right vector
+	Vec3 s = vector::Cross(f, up);
+	vector::Normalize(s);
+
+	// The up vector
+	Vec3 u = vector::Cross(s, f);
+
+	Mat4x4 rotation;
+
+	// Row 0
+	rotation.col[0].x = s.x;
+	rotation.col[1].x = s.y;
+	rotation.col[2].x = s.z;
+	rotation.col[3].x = 0.0f;
+	
+	// Row 1
+	rotation.col[0].y = u.x;
+	rotation.col[1].y = u.y;
+	rotation.col[2].y = u.z;
+	rotation.col[3].y = 0.0f;
+	
+	// Row 2
+	rotation.col[0].z = -f.x;
+	rotation.col[1].z = -f.y;
+	rotation.col[2].z = -f.z;
+	rotation.col[3].z = 0.0f;
+	
+	// Row 3
+	rotation.col[0].w = 0.0f;
+	rotation.col[1].w = 0.0f;
+	rotation.col[2].w = 0.0f;
+	rotation.col[3].w = 1.0f;
+
+	// Now we can get the resulting matrix by multiplying rotation with a translation matrix for the eye position.
+	// Like this:
+	//	Mat4x4 translation = matrix::CreateTranslation(Vec3(-eye.x, -eye.y, -eye.z));
+	//	Mat4x4 result = matrix::Multiply(rotation, translation);
+
+	// But a possible simplification to avoid the multiplication is to just directly insert the dot products of the eye position.
+	rotation.col[3].x = -vector::Dot(s, eye);
+	rotation.col[3].y = -vector::Dot(u, eye);
+	rotation.col[3].z =  vector::Dot(f, eye);
+	rotation.col[3].w = 1.0f;
+
+	return rotation;
+}
+
 Mat4x4 matrix::Multiply(const Mat4x4& lhs, const Mat4x4& rhs)
 {
 	Mat4x4 result;

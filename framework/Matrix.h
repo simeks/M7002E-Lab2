@@ -40,6 +40,12 @@ namespace matrix
 	/// @param zfar Distance to the far clipping plane from the viewer.
 	Mat4x4 CreatePerspective(float fovy, float aspect, float znear, float zfar);
 
+	/// @brief Creates a view matrix from the specified arguments.
+	/// @param eye The position of the eye.
+	/// @param at The position to look at.
+	/// @param up The up vector.
+	Mat4x4 LookAt(const Vec3& eye, const Vec3& at, const Vec3& up);
+
 	/// @brief Multiplies two matrices.
 	Mat4x4 Multiply(const Mat4x4& lhs, const Mat4x4& rhs);
 
