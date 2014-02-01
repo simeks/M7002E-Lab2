@@ -85,3 +85,88 @@ void RenderDevice::ReleaseVertexBuffer(int vertex_buffer)
 	_vertex_buffers.erase(_vertex_buffers.begin() + vertex_buffer);
 
 }
+
+int RenderDevice::CreateShader(const char* vertex_shader_src, const char* fragment_shader_src)
+{
+	Shader shader;
+	shader.vertex_shader = 0;
+	shader.fragment_shader = 0;
+
+	shader.program = glCreateProgram();
+	
+	// Vertex shader
+	{
+		shader.vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+
+		// Load shader source into shader
+		glShaderSource(shader.vertex_shader, 1, &vertex_shader_src, NULL); 
+		// Compile shader
+		glCompileShader(shader.vertex_shader);
+
+		// Check if the shader compiled successfuly
+		int param = -1;
+		glGetShaderiv(shader.vertex_shader, GL_COMPILE_STATUS, &param);
+		if(param != GL_TRUE)
+		{
+			debug::Printf("RenderDevice: Failed to compile vertex shader %u.\n", shader.vertex_shader);
+			PrintShaderInfoLog(shader.vertex_shader);
+			return -1;
+		}
+
+		// Attach the vertex shader to the shader program
+		glAttachShader(shader.program, shader.vertex_shader);
+	}
+	// Fragment shader
+	{
+		shader.fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+		// Load shader source into shader
+		glShaderSource(shader.fragment_shader, 1, &fragment_shader_src, NULL); 
+		// Compile shader
+		glCompileShader(shader.fragment_shader);
+
+		// Check if the shader compiled successfuly
+		int param = -1;
+		glGetShaderiv(shader.fragment_shader, GL_COMPILE_STATUS, &param);
+		if(param != GL_TRUE)
+		{
+			debug::Printf("RenderDevice: Failed to compile vertex shader %u.\n", shader.fragment_shader);
+			PrintShaderInfoLog(shader.fragment_shader);
+			return -1;
+		}
+
+		// Attach the vertex shader to the shader program
+		glAttachShader(shader.program, shader.fragment_shader);
+	}
+
+	glLinkProgram(shader.program);
+
+	_shaders.push_back(shader);
+	return _shaders.size() - 1;
+}
+void RenderDevice::ReleaseShader(int shader_handle)
+{
+	assert(shader_handle >= 0 && shader_handle < _shaders.size());
+
+	Shader& shader = _shaders[shader_handle];
+	
+	if(shader.vertex_shader != 0)
+		glDeleteShader(shader.vertex_shader);
+	if(shader.fragment_shader != 0)
+		glDeleteShader(shader.fragment_shader);
+	
+	glDeleteProgram(shader.program);
+
+	_shaders.erase(_shaders.begin() + shader_handle);
+}
+void RenderDevice::PrintShaderInfoLog(GLuint shader)
+{
+	char info_log[2048];
+	int length = 0;
+
+	// Get the info log for the specified shader
+	glGetShaderInfoLog(shader, 2048, &length, info_log);
+
+	debug::Printf("%s\n", info_log);
+}
+

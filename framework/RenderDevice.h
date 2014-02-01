@@ -30,8 +30,33 @@ public:
 	/// @sa CreateVertexBuffer
 	void ReleaseVertexBuffer(int vertex_buffer);
 
+	/// @brief Creates a new shader program consisting of a vertex shader and a fragment shader.
+	/// @param vertex_shader_src String containing the GLSL source code for the vertex shader.
+	/// @param fragment_shader_src String containing the GLSL source code for the fragment shader.
+	/// @return Returns a handle to the shader if shader was created successful, returns -1 if it failed.
+	/// @sa ReleaseShader
+	int CreateShader(const char* vertex_shader_src, const char* fragment_shader_src);
+
+	/// @brief Releases a shader that have been created with CreateShader.
+	/// @sa CreateShader
+	void ReleaseShader(int shader_handle);
+
 private:
+	/// @brief Prints the shader info log for the specified shader.
+	void PrintShaderInfoLog(GLuint shader);
+	
+private:
+	struct Shader
+	{
+		GLuint vertex_shader;
+		GLuint fragment_shader;
+
+		GLuint program; // Shader program that combines all our shaders above (vertex shader, fragment shader)
+
+	};
+
 	std::vector<GLuint> _vertex_buffers;
+	std::vector<Shader> _shaders;
 
 };
 

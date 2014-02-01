@@ -171,7 +171,8 @@ Mat4x4 matrix::LookAt(const Vec3& eye, const Vec3& at, const Vec3& up)
 	//	Mat4x4 translation = matrix::CreateTranslation(Vec3(-eye.x, -eye.y, -eye.z));
 	//	Mat4x4 result = matrix::Multiply(rotation, translation);
 
-	// But a possible simplification to avoid the multiplication is to just directly insert the dot products of the eye position.
+	// But a possible simplification to avoid the multiplication is to just directly insert the dot products of the 
+	//	eye position and the axes, as this will provide the same result.
 	rotation.col[3].x = -vector::Dot(s, eye);
 	rotation.col[3].y = -vector::Dot(u, eye);
 	rotation.col[3].z =  vector::Dot(f, eye);
