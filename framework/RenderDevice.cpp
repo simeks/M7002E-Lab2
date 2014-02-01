@@ -139,14 +139,33 @@ int RenderDevice::CreateShader(const char* vertex_shader_src, const char* fragme
 		glAttachShader(shader.program, shader.fragment_shader);
 	}
 
+	// Link shaders
 	glLinkProgram(shader.program);
+	
+	// Check if linking was sucessful
+	int param = -1;
+	glGetProgramiv(shader.program, GL_LINK_STATUS, &param);
+	if(param != GL_TRUE)
+	{
+		debug::Printf("RenderDevice: Failed to link program %u.\n", shader.program);
+			
+		char info_log[2048];
+		int length = 0;
+
+		// Get the info log for the program
+		glGetProgramInfoLog(shader.program, 2048, &length, info_log);
+
+		debug::Printf("%s\n", info_log);
+
+		return -1;
+	}
 
 	_shaders.push_back(shader);
 	return _shaders.size() - 1;
 }
 void RenderDevice::ReleaseShader(int shader_handle)
 {
-	assert(shader_handle >= 0 && shader_handle < _shaders.size());
+	assert(shader_handle >= 0 && (uint32_t)shader_handle < _shaders.size());
 
 	Shader& shader = _shaders[shader_handle];
 	
