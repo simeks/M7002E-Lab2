@@ -9,9 +9,21 @@ public:
 	RenderDevice();
 	~RenderDevice();
 
+	/// @brief Initializes the render device.
+	/// @return True if the initialization was successful, false if it failed.
 	bool Initialize();
+
+	/// @brief Shuts down the render device, performing any necessary clean up.
 	void Shutdown();
 	
+	/// @brief Binds the specified shader program to the pipeline.
+	/// @param shader_handle Specify shader to bind, setting this to -1 will unbind any currently bound shader.
+	void BindShader(int shader_handle);
+
+
+	void SetUniform4f(const char* name, const Vec4& value);
+	void SetUniformMatrix4fv(const char* name, const Mat4x4& value);
+
 	void Draw(int vertex_buffer);
 
 	/// @brief Specifies the clear color for when clearing the back buffer. 
@@ -55,9 +67,13 @@ private:
 
 	};
 
-	std::vector<GLuint> _vertex_buffers;
-	std::vector<Shader> _shaders;
+	std::map<int, GLuint> _vertex_buffers;
+	int _next_buffer_id;
 
+	std::map<int, Shader> _shaders;
+	int _next_shader_id;
+
+	int _current_shader; // Id of the currently bound shader, -1 means no shader is bound.
 };
 
 #endif // __RENDERDEVICE_H__

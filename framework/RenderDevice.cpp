@@ -4,6 +4,9 @@
 
 
 RenderDevice::RenderDevice()
+	: _next_buffer_id(0),
+	_next_shader_id(0),
+	_current_shader(-1)
 {
 }
 RenderDevice::~RenderDevice()
@@ -31,13 +34,83 @@ bool RenderDevice::Initialize()
 void RenderDevice::Shutdown()
 {
 	// Release any buffers that are still allocated
-	for(std::vector<GLuint>::iterator it = _vertex_buffers.begin();
+	for(std::map<int, GLuint>::iterator it = _vertex_buffers.begin();
 		it != _vertex_buffers.end(); ++it)
 	{
-		glDeleteBuffers(1, &(*it));
+		glDeleteBuffers(1, &it->second);
 	}
 	_vertex_buffers.clear();
 
+	// Release any remaining shaders
+	for(std::map<int, Shader>::iterator it = _shaders.begin(); 
+		it != _shaders.end(); ++it)
+	{
+	}
+
+}
+void RenderDevice::BindShader(int shader_handle)
+{
+	if(shader_handle >= 0)
+	{
+		std::map<int, Shader>::iterator it = _shaders.find(shader_handle);
+		assert(it != _shaders.end());
+
+		glUseProgram(it->second.program);
+
+		_current_shader = shader_handle;
+	}
+	else
+	{
+		// Unbind current program
+		glUseProgram(0);
+
+		_current_shader = -1; // Setting the current shader to -1 indicates that no shader is bound.
+	}
+}
+
+void RenderDevice::SetUniform4f(const char* name, const Vec4& value)
+{
+	if(_current_shader == -1) // Nothing to do if no shader is bound.
+	{
+		debug::Printf("RenderDevice: Failed setting uniform value; no shader bound.\n");
+		return;
+	}
+
+	std::map<int, Shader>::iterator it = _shaders.find(_current_shader);
+	assert(it != _shaders.end());
+
+	// Find the location of the variable with the specified name
+	GLint location = glGetUniformLocation(it->second.program, name);
+	if(location == -1)
+	{
+		debug::Printf("RenderDevice: No uniform variable with the name '%s' found.\n", name);
+		return;
+	}
+
+	// Set the value at the found location
+	glUniform4f(location, value.x, value.y, value.z, value.w);
+}
+void RenderDevice::SetUniformMatrix4fv(const char* name, const Mat4x4& value)
+{
+	if(_current_shader == -1) // Nothing to do if no shader is bound.
+	{
+		debug::Printf("RenderDevice: Failed setting uniform value; no shader bound.\n");
+		return;
+	}
+
+	std::map<int, Shader>::iterator it = _shaders.find(_current_shader);
+	assert(it != _shaders.end());
+
+	// Find the location of the variable with the specified name
+	GLint location = glGetUniformLocation(it->second.program, name);
+	if(location == -1)
+	{
+		debug::Printf("RenderDevice: No uniform variable with the name '%s' found.\n", name);
+		return;
+	}
+
+	// Set the value at the found location
+	glUniformMatrix4fv(location, 1, false, (float*)&value);
 }
 
 void RenderDevice::Draw(int )
@@ -71,18 +144,19 @@ int RenderDevice::CreateVertexBuffer(uint32_t size, void* vertex_data)
 				GL_STATIC_DRAW // Specifies that the buffer should be static and it should be used for drawing.
 				);
 
-	_vertex_buffers.push_back(buffer);
+	_vertex_buffers[_next_buffer_id++] = buffer;
 
-	return _vertex_buffers.size() - 1;
+	return _next_buffer_id - 1;
 }
 void RenderDevice::ReleaseVertexBuffer(int vertex_buffer)
 {
-	assert(vertex_buffer >= 0 && (uint32_t)vertex_buffer < _vertex_buffers.size());
-
+	std::map<int, GLuint>::iterator it = _vertex_buffers.find(vertex_buffer);
+	assert(it != _vertex_buffers.end());
+	
 	// Delete the buffer
-	glDeleteBuffers(1, &_vertex_buffers[vertex_buffer]);
+	glDeleteBuffers(1, &it->second);
 
-	_vertex_buffers.erase(_vertex_buffers.begin() + vertex_buffer);
+	_vertex_buffers.erase(it);
 
 }
 
@@ -159,24 +233,24 @@ int RenderDevice::CreateShader(const char* vertex_shader_src, const char* fragme
 
 		return -1;
 	}
+	
+	_shaders[_next_shader_id++] = shader;
 
-	_shaders.push_back(shader);
-	return _shaders.size() - 1;
+	return _next_shader_id - 1;
 }
 void RenderDevice::ReleaseShader(int shader_handle)
 {
-	assert(shader_handle >= 0 && (uint32_t)shader_handle < _shaders.size());
-
-	Shader& shader = _shaders[shader_handle];
+	std::map<int, Shader>::iterator it = _shaders.find(shader_handle);
+	assert(it != _shaders.end());
 	
-	if(shader.vertex_shader != 0)
-		glDeleteShader(shader.vertex_shader);
-	if(shader.fragment_shader != 0)
-		glDeleteShader(shader.fragment_shader);
+	if(it->second.vertex_shader != 0)
+		glDeleteShader(it->second.vertex_shader);
+	if(it->second.fragment_shader != 0)
+		glDeleteShader(it->second.fragment_shader);
 	
-	glDeleteProgram(shader.program);
+	glDeleteProgram(it->second.program);
 
-	_shaders.erase(_shaders.begin() + shader_handle);
+	_shaders.erase(it);
 }
 void RenderDevice::PrintShaderInfoLog(GLuint shader)
 {

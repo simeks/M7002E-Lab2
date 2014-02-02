@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include <vector>
+#include <map>
 #include <math.h>
 
 // Constants
