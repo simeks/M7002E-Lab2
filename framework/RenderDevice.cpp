@@ -2,13 +2,6 @@
 
 #include "RenderDevice.h"
 
-namespace
-{
-	void APIENTRY gl_error_callback(GLenum , GLenum , GLuint , GLenum , GLsizei , const GLchar* message, GLvoid* )
-	{
-		debug::Printf("[OpenGL] %s\n", message);
-	}
-};
 
 RenderDevice::RenderDevice()
 	: _next_buffer_id(0),
@@ -36,7 +29,6 @@ bool RenderDevice::Initialize()
 	const GLubyte *version = glGetString(GL_VERSION);
 	debug::Printf("OpenGL Version: %s\n", version);
 
-	glDebugMessageCallback(gl_error_callback, NULL);
 
 	return true;
 }
@@ -243,7 +235,7 @@ int RenderDevice::CreateShader(const char* vertex_shader_src, const char* fragme
 		glGetShaderiv(shader.fragment_shader, GL_COMPILE_STATUS, &param);
 		if(param != GL_TRUE)
 		{
-			debug::Printf("RenderDevice: Failed to compile vertex shader %u.\n", shader.fragment_shader);
+			debug::Printf("RenderDevice: Failed to compile pixel shader %u.\n", shader.fragment_shader);
 			PrintShaderInfoLog(shader.fragment_shader);
 			return -1;
 		}
