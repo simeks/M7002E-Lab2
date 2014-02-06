@@ -1,6 +1,25 @@
 #ifndef __RENDERDEVICE_H__
 #define __RENDERDEVICE_H__
 
+namespace vertex_format
+{
+	enum VertexFormat
+	{
+		VF_POSITION3F
+	};
+};
+
+struct DrawCall
+{
+	GLenum draw_mode;
+
+	int vertex_buffer;
+	int vertex_offset;
+	int vertex_count;
+	
+	vertex_format::VertexFormat vertex_format;
+
+};
 
 /// @brief Render device handling low-level opengl calls.
 class RenderDevice
@@ -20,11 +39,18 @@ public:
 	/// @param shader_handle Specify shader to bind, setting this to -1 will unbind any currently bound shader.
 	void BindShader(int shader_handle);
 
-
+	/// @brief Specifies the value of a uniform variable.
+	/// @param name Name of the uniform variable.
+	/// @param value Specifies the new value.
 	void SetUniform4f(const char* name, const Vec4& value);
-	void SetUniformMatrix4fv(const char* name, const Mat4x4& value);
 
-	void Draw(int vertex_buffer);
+	/// @brief Specifies the value of a uniform variable.
+	/// @param name Name of the uniform variable.
+	/// @param value Specifies the new value.
+	void SetUniformMatrix4f(const char* name, const Mat4x4& value);
+
+	/// @param draw_mode Specifies what kind of primitives to render.
+	void Draw(const DrawCall& draw_call);
 
 	/// @brief Specifies the clear color for when clearing the back buffer. 
 	void SetClearColor(float r, float g, float b, float a);

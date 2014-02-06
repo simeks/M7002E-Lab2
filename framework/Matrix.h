@@ -34,7 +34,7 @@ namespace matrix
 	Mat4x4 CreateScaling(const Vec3& scale);
 
 	/// @brief Creates a perspective projection matrix.
-	/// @param fovy Field of view angle in the y direction.
+	/// @param fovy Field of view angle in the y direction in radians.
 	/// @param aspect Aspect ratio (ratio of width to height).
 	/// @param znear Distance to the near clipping plane from the viewer.
 	/// @param zfar Distance to the far clipping plane from the viewer.

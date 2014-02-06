@@ -6,6 +6,7 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 
+
 App::App()
 	: _window(NULL),
 	_running(false),

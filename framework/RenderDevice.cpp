@@ -2,6 +2,13 @@
 
 #include "RenderDevice.h"
 
+namespace
+{
+	void APIENTRY gl_error_callback(GLenum , GLenum , GLuint , GLenum , GLsizei , const GLchar* message, GLvoid* )
+	{
+		debug::Printf("[OpenGL] %s\n", message);
+	}
+};
 
 RenderDevice::RenderDevice()
 	: _next_buffer_id(0),
@@ -28,6 +35,8 @@ bool RenderDevice::Initialize()
 
 	const GLubyte *version = glGetString(GL_VERSION);
 	debug::Printf("OpenGL Version: %s\n", version);
+
+	glDebugMessageCallback(gl_error_callback, NULL);
 
 	return true;
 }
@@ -90,7 +99,7 @@ void RenderDevice::SetUniform4f(const char* name, const Vec4& value)
 	// Set the value at the found location
 	glUniform4f(location, value.x, value.y, value.z, value.w);
 }
-void RenderDevice::SetUniformMatrix4fv(const char* name, const Mat4x4& value)
+void RenderDevice::SetUniformMatrix4f(const char* name, const Mat4x4& value)
 {
 	if(_current_shader == -1) // Nothing to do if no shader is bound.
 	{
@@ -113,9 +122,39 @@ void RenderDevice::SetUniformMatrix4fv(const char* name, const Mat4x4& value)
 	glUniformMatrix4fv(location, 1, false, (float*)&value);
 }
 
-void RenderDevice::Draw(int )
+void RenderDevice::Draw(const DrawCall& draw_call)
 {
+	// Binds the vertex buffer for use.
+	{
+		std::map<int, GLuint>::iterator it = _vertex_buffers.find(draw_call.vertex_buffer);
+		assert(it != _vertex_buffers.end());
 
+		glBindBuffer(GL_ARRAY_BUFFER, it->second); 
+	}
+
+	// Bind vertex attributes depending on the specified vertex format.
+	switch(draw_call.vertex_format)
+	{
+	case vertex_format::VF_POSITION3F:
+		{
+			// Specifies the location and format of the position data.
+			glVertexAttribPointer(	0, // Attribute index 0
+									3, // 3 floats (x, y, z)
+									GL_FLOAT, // Format,
+									GL_FALSE, // Data should not be normalized
+									0, // Buffer only contains positions so no need to specify stride.
+									0 // Offset to the first position element in the buffer.
+								); 
+
+			glEnableVertexAttribArray(0);
+		}
+		break;
+	};
+	
+	// Perform the actual draw call.
+	glDrawArrays(draw_call.draw_mode, draw_call.vertex_offset, draw_call.vertex_count);
+	
+	glDisableVertexAttribArray(0);
 }
 
 void RenderDevice::SetClearColor(float r, float g, float b, float a)
