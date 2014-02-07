@@ -25,14 +25,6 @@ public:
 	/// @param size The size of the pyramid.
 	Primitive CreatePyramid(const Vec3& size);
 
-	/// @brief Creates a filled rectangle primitive.
-	/// @param size The size of the rectangle.
-	Primitive CreateFilledRectangle(const Vec2& size);
-	
-	/// @brief Creates a filled star primitive.
-	/// @param size The size of the star.
-	Primitive CreateFilledStar(const Vec2& size);
-
 	/// @brief Creates a cube.
 	/// @param size The size of the cube.
 	Primitive CreateCube(const Vec3& size);

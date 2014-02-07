@@ -50,7 +50,7 @@ bool Lab2App::Initialize()
 	_camera.projection_matrix = matrix::CreatePerspective(45.0f*(float)MATH_PI/180.0f, (float)win_width/(float)win_height, 1.0f, 1000.0f);
 	
 	// Set the camera position to (0, 0, 400) and make it look at the center of the scene (0, 0, 0)
-	_camera.view_matrix = matrix::LookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
+	_camera.view_matrix = matrix::LookAt(Vec3(5.0f, 2.5f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
 
 	_primitive_factory = new PrimitiveFactory(_render_device);
 	_scene = new Scene(_primitive_factory);
@@ -61,7 +61,7 @@ bool Lab2App::Initialize()
 	default_material.shader = _default_shader;
 	_scene->SetMaterialTemplate(default_material);
 	
-	_scene->CreateEntity(Entity::ET_PYRAMID);
+	_scene->CreateEntity(Entity::ET_CUBE);
 
 	return true;
 }
@@ -78,8 +78,13 @@ void Lab2App::Shutdown()
 
 	ShutdownSDL();
 }
-void Lab2App::Render(float)
+float camera_angle = 0.0f;
+void Lab2App::Render(float a)
 {
+	camera_angle = camera_angle + 1.0f * a;
+	
+	_camera.view_matrix = matrix::LookAt(Vec3(5.0f*sinf(camera_angle), 1.5f, 5.0f*cosf(camera_angle)), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
+
 	_matrix_stack.Push();
 
 	// Setup camera transforms
