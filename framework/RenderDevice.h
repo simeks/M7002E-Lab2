@@ -5,19 +5,19 @@ namespace vertex_format
 {
 	enum VertexFormat
 	{
-		VF_POSITION3F
+		VF_POSITION3F // Each vertex holds only a position: x, y, z
 	};
 };
 
 struct DrawCall
 {
-	GLenum draw_mode;
+	GLenum draw_mode; // Specifies draw mode, e.g. GL_POINTS, GL_TRIANGLES, etc.
 
 	int vertex_buffer;
 	int vertex_offset;
 	int vertex_count;
 	
-	vertex_format::VertexFormat vertex_format;
+	vertex_format::VertexFormat vertex_format; // Specifies the vertex format in the vertex buffer. See enum VertexFormat
 
 };
 
