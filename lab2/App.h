@@ -3,7 +3,7 @@
 
 #include <framework/App.h>
 
-#include "PrimitiveFactory.h"
+#include "MatrixStack.h"
 
 struct Viewport
 {
@@ -11,6 +11,14 @@ struct Viewport
 	int width, height;
 };
 
+struct Camera
+{
+	Mat4x4 view_matrix;
+	Mat4x4 projection_matrix;
+};
+
+class Scene;
+class PrimitiveFactory;
 class Lab2App : public App
 {
 public:
@@ -24,15 +32,16 @@ protected:
 
 	/// @brief Callback invoked once every frame to let the application perform rendering.
 	void Render(float dtime);
-
-	/// @brief Renders the scene, this does not include any viewport setup, etc, that may be needed.
-	void RenderScene();
 	
 private:
-	PrimitiveFactory* _primitive_factory;
-
+	MatrixStack _matrix_stack;
 	Viewport _viewport;
-	
+	Camera _camera;
+
+	PrimitiveFactory* _primitive_factory;
+	Scene* _scene;
+
+	int _default_shader;
 };
 
 

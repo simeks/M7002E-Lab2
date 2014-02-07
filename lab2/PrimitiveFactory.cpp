@@ -11,13 +11,13 @@ PrimitiveFactory::~PrimitiveFactory()
 {
 }
 
-Primitive PrimitiveFactory::CreatePyramid(const Vec3& size, const Color& color)
+Primitive PrimitiveFactory::CreatePyramid(const Vec3& size)
 {
 	Primitive primitive;
-	primitive.draw_mode = GL_LINE_STRIP;
+	primitive.draw_call.draw_mode = GL_LINE_STRIP;
 
 	// We can draw the outlines of the 3d pyramid with 11 vertices using GL_LINE_STRIP
-	primitive.vertex_count = 11; 
+	primitive.draw_call.vertex_count = 11; 
 
 	float vertex_data[11*3]; // 6 vertices, 3 floats each (x, y, z)
 	int i = 0;
@@ -50,31 +50,19 @@ Primitive PrimitiveFactory::CreatePyramid(const Vec3& size, const Color& color)
 
 	// Create the vertex buffer, possible optimization would be to create a shared vertex buffer for the rectangles
 	//	rather than creating a new one for each rectangle.
-	primitive.vertex_buffer = _render_device->CreateVertexBuffer(3*primitive.vertex_count*sizeof(float), vertex_data);
-	
-	float color_data[11*4]; // 6 vertices, 4 floats each (r, g, b, a)
-	
-	// Fill the color data, each vertex will have the same color.
-	for(i = 0; i < 11; ++i)
-	{
-		color_data[4*i+0] = color.r; 
-		color_data[4*i+1] = color.g; 
-		color_data[4*i+2] = color.b; 
-		color_data[4*i+3] = color.a; 
-	}
-	
-	// Create the color buffer, this could (and probably should) be interleaved with the other vertex buffer but we keep it simple.
-	primitive.color_buffer = _render_device->CreateVertexBuffer(4*primitive.vertex_count*sizeof(float), color_data);
+	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(3*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_offset = 0;
+	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F;
 
 	return primitive;
 }
-Primitive PrimitiveFactory::CreateFilledRectangle(const Vec2& size, const Color& color)
+Primitive PrimitiveFactory::CreateFilledRectangle(const Vec2& size)
 {
 	Primitive primitive;
-	primitive.draw_mode = GL_TRIANGLES;
+	primitive.draw_call.draw_mode = GL_TRIANGLES;
 
 	// The rectangle consists of two triangles, which means we have 6 vertices.
-	primitive.vertex_count = 6; 
+	primitive.draw_call.vertex_count = 6; 
 
 	float vertex_data[6*3]; // 6 vertices, 3 floats each (x, y, z)
 	int i = 0;
@@ -95,31 +83,19 @@ Primitive PrimitiveFactory::CreateFilledRectangle(const Vec2& size, const Color&
 
 	// Create the vertex buffer, possible optimization would be to create a shared vertex buffer for the rectangles
 	//	rather than creating a new one for each rectangle.
-	primitive.vertex_buffer = _render_device->CreateVertexBuffer(3*primitive.vertex_count*sizeof(float), vertex_data);
-	
-	float color_data[6*4]; // 6 vertices, 4 floats each (r, g, b, a)
-	
-	// Fill the color data, each vertex will have the same color.
-	for(i = 0; i < 6; ++i)
-	{
-		color_data[4*i+0] = color.r; 
-		color_data[4*i+1] = color.g; 
-		color_data[4*i+2] = color.b; 
-		color_data[4*i+3] = color.a; 
-	}
-	
-	// Create the color buffer, this could (and probably should) be interleaved with the other vertex buffer but we keep it simple.
-	primitive.color_buffer = _render_device->CreateVertexBuffer(4*primitive.vertex_count*sizeof(float), color_data);
+	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(3*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_offset = 0;
+	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F;
 
 	return primitive;
 }
-Primitive PrimitiveFactory::CreateFilledStar(const Vec2& size, const Color& color)
+Primitive PrimitiveFactory::CreateFilledStar(const Vec2& size)
 {
 	Primitive primitive;
-	primitive.draw_mode = GL_TRIANGLES;
+	primitive.draw_call.draw_mode = GL_TRIANGLES;
 
 	// The star consists of two triangles, which means we have 6 vertices.
-	primitive.vertex_count = 6; 
+	primitive.draw_call.vertex_count = 6; 
 
 	float vertex_data[6*3]; // 6 vertices, 3 floats each (x, y, z)
 	int i = 0;
@@ -141,32 +117,20 @@ Primitive PrimitiveFactory::CreateFilledStar(const Vec2& size, const Color& colo
 
 	// Create the vertex buffer, possible optimization would be to create a shared vertex buffer for the stars
 	//	rather than creating a new one for each star.
-	primitive.vertex_buffer = _render_device->CreateVertexBuffer(3*primitive.vertex_count*sizeof(float), vertex_data);
-	
-	float color_data[6*4]; // 6 vertices, 4 floats each (r, g, b, a)
-	
-	// Fill the color data, each vertex will have the same color.
-	for(i = 0; i < 6; ++i)
-	{
-		color_data[4*i+0] = color.r; 
-		color_data[4*i+1] = color.g; 
-		color_data[4*i+2] = color.b; 
-		color_data[4*i+3] = color.a; 
-	}
-	
-	// Create the color buffer, this could (and probably should) be interleaved with the other vertex buffer but we keep it simple.
-	primitive.color_buffer = _render_device->CreateVertexBuffer(4*primitive.vertex_count*sizeof(float), color_data);
+	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(3*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_offset = 0;
+	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F;
 
 	return primitive;
 }
 
-Primitive PrimitiveFactory::CreateCube(const Vec3& size, const Color& color)
+Primitive PrimitiveFactory::CreateCube(const Vec3& size)
 {
 	Primitive primitive;
-	primitive.draw_mode = GL_LINES;
+	primitive.draw_call.draw_mode = GL_LINES;
 
 	// The cube consists of 12 lines => 24 vertices.
-	primitive.vertex_count = 24; 
+	primitive.draw_call.vertex_count = 24; 
 
 	float vertex_data[24*3]; // 24 vertices, 3 floats each (x, y, z)
 	int i = 0;
@@ -216,35 +180,21 @@ Primitive PrimitiveFactory::CreateCube(const Vec3& size, const Color& color)
 	vertex_data[i++] = -half_size.x;	vertex_data[i++] = -half_size.y;	vertex_data[i++] = half_size.z; // Top left (Bottom)
 
 
-
 	// Create the vertex buffer, possible optimization would be to create a shared vertex buffer for the rectangles
 	//	rather than creating a new one for each rectangle.
-	primitive.vertex_buffer = _render_device->CreateVertexBuffer(3*primitive.vertex_count*sizeof(float), vertex_data);
-	
-	float color_data[24*4]; // 24 vertices, 4 floats each (r, g, b, a)
-
-	// Fill the color data, each vertex will have the same color.
-	for(i = 0; i < 24; ++i)
-	{
-		color_data[4*i+0] = color.r; 
-		color_data[4*i+1] = color.g; 
-		color_data[4*i+2] = color.b; 
-		color_data[4*i+3] = color.a; 
-			
-	}
-	
-	// Create the color buffer, this could (and probably should) be interleaved with the other vertex buffer but we keep it simple.
-	primitive.color_buffer = _render_device->CreateVertexBuffer(4*primitive.vertex_count*sizeof(float), color_data);
+	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(3*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_offset = 0;
+	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F;
 
 	return primitive;
 }
-Primitive PrimitiveFactory::CreateFilledCircle(float radius, const Color& color)
+Primitive PrimitiveFactory::CreateFilledCircle(float radius)
 {
 	static const uint32_t line_count = 32; // Number of segments per circle
 
 	Primitive primitive;
-	primitive.draw_mode = GL_TRIANGLE_FAN;
-	primitive.vertex_count = (line_count+1); // +1 for the center vertex 
+	primitive.draw_call.draw_mode = GL_TRIANGLE_FAN;
+	primitive.draw_call.vertex_count = (line_count+1); // +1 for the center vertex 
 
 	float vertex_data[(line_count+1) * 3];
 	int vertex_idx = 0;
@@ -264,21 +214,10 @@ Primitive PrimitiveFactory::CreateFilledCircle(float radius, const Color& color)
 
 	// Create the vertex buffer, possible optimization would be to create a shared vertex buffer for the rectangles
 	//	rather than creating a new one for each rectangle.
-	primitive.vertex_buffer = _render_device->CreateVertexBuffer(3*primitive.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(3*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_offset = 0;
+	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F;
 	
-	float color_data[(line_count+1) * 4]; // Color data for each vertice (r, g, b, a)
-	
-	// Fill the color data, each vertex will have the same color.
-	for(int i = 0; i < (line_count+1); ++i)
-	{
-		color_data[4*i+0] = color.r; 
-		color_data[4*i+1] = color.g; 
-		color_data[4*i+2] = color.b; 
-		color_data[4*i+3] = color.a; 
-	}
-	
-	// Create the color buffer, this could (and probably should) be interleaved with the other vertex buffer but we keep it simple.
-	primitive.color_buffer = _render_device->CreateVertexBuffer(4*primitive.vertex_count*sizeof(float), color_data);
 
 	return primitive;
 }
@@ -286,6 +225,5 @@ void PrimitiveFactory::DestroyPrimitive(Primitive& primitive)
 {
 	// Delete the buffers that the primitive holds
 
-	_render_device->ReleaseVertexBuffer(primitive.vertex_buffer);
-	_render_device->ReleaseVertexBuffer(primitive.color_buffer);
+	_render_device->ReleaseVertexBuffer(primitive.draw_call.vertex_buffer);
 }
