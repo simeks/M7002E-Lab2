@@ -35,19 +35,25 @@ bool RenderDevice::Initialize()
 void RenderDevice::Shutdown()
 {
 	// Release any buffers that are still allocated
-	for(std::map<int, GLuint>::iterator it = _vertex_buffers.begin();
-		it != _vertex_buffers.end(); ++it)
+	for(std::map<int, GLuint>::iterator it = _hardware_buffers.begin();
+		it != _hardware_buffers.end(); ++it)
 	{
 		glDeleteBuffers(1, &it->second);
 	}
-	_vertex_buffers.clear();
+	_hardware_buffers.clear();
 
 	// Release any remaining shaders
 	for(std::map<int, Shader>::iterator it = _shaders.begin(); 
 		it != _shaders.end(); ++it)
 	{
+		if(it->second.vertex_shader != 0)
+			glDeleteShader(it->second.vertex_shader);
+		if(it->second.fragment_shader != 0)
+			glDeleteShader(it->second.fragment_shader);
+	
+		glDeleteProgram(it->second.program);
 	}
-
+	_shaders.clear();
 }
 void RenderDevice::BindShader(int shader_handle)
 {
@@ -116,12 +122,23 @@ void RenderDevice::SetUniformMatrix4f(const char* name, const Mat4x4& value)
 
 void RenderDevice::Draw(const DrawCall& draw_call)
 {
-	// Binds the vertex buffer for use.
+	// Binds the vertex/index buffers for use.
 	{
-		std::map<int, GLuint>::iterator it = _vertex_buffers.find(draw_call.vertex_buffer);
-		assert(it != _vertex_buffers.end());
+		assert(draw_call.vertex_buffer != -1); // User needs to specify a vertex buffer.
+
+		std::map<int, GLuint>::iterator it = _hardware_buffers.find(draw_call.vertex_buffer);
+		assert(it != _hardware_buffers.end());
 
 		glBindBuffer(GL_ARRAY_BUFFER, it->second); 
+
+		// Bind index buffer if specified
+		if(draw_call.index_buffer != -1)
+		{
+			std::map<int, GLuint>::iterator ib_it = _hardware_buffers.find(draw_call.index_buffer);
+			assert(ib_it != _hardware_buffers.end());
+
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib_it->second);
+		}
 	}
 
 	// Bind vertex attributes depending on the specified vertex format.
@@ -144,8 +161,17 @@ void RenderDevice::Draw(const DrawCall& draw_call)
 	};
 	
 	// Perform the actual draw call.
-	glDrawArrays(draw_call.draw_mode, draw_call.vertex_offset, draw_call.vertex_count);
-	
+	if(draw_call.index_buffer != -1)
+	{
+		// Draw with index buffer
+		glDrawElements(draw_call.draw_mode, draw_call.index_count, GL_UNSIGNED_SHORT, 0);
+	}
+	else
+	{
+		// Draw without index buffer
+		glDrawArrays(draw_call.draw_mode, draw_call.vertex_offset, draw_call.vertex_count);
+	}
+
 	glDisableVertexAttribArray(0);
 }
 
@@ -175,20 +201,40 @@ int RenderDevice::CreateVertexBuffer(uint32_t size, void* vertex_data)
 				GL_STATIC_DRAW // Specifies that the buffer should be static and it should be used for drawing.
 				);
 
-	_vertex_buffers[_next_buffer_id++] = buffer;
+	_hardware_buffers[_next_buffer_id++] = buffer;
 
 	return _next_buffer_id - 1;
 }
-void RenderDevice::ReleaseVertexBuffer(int vertex_buffer)
+int RenderDevice::CreateIndexBuffer(uint32_t index_count, uint16_t* index_data)
 {
-	std::map<int, GLuint>::iterator it = _vertex_buffers.find(vertex_buffer);
-	assert(it != _vertex_buffers.end());
+	GLuint buffer; // The resulting buffer name will be stored here.
+
+	// Generate a name for our new buffer.
+	glGenBuffers(1, &buffer);
+
+	// Bind the buffer, this will also perform the actual creation of the buffer.
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
+
+	// Upload the data to the buffer.
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
+				index_count * sizeof(uint16_t), // The total size of the buffer
+				index_data, // The data that should be uploaded
+				GL_STATIC_DRAW // Specifies that the buffer should be static and it should be used for drawing.
+				);
+
+	_hardware_buffers[_next_buffer_id++] = buffer;
+
+	return _next_buffer_id - 1;
+}
+void RenderDevice::ReleaseHardwareBuffer(int buffer)
+{
+	std::map<int, GLuint>::iterator it = _hardware_buffers.find(buffer);
+	assert(it != _hardware_buffers.end());
 	
 	// Delete the buffer
 	glDeleteBuffers(1, &it->second);
 
-	_vertex_buffers.erase(it);
-
+	_hardware_buffers.erase(it);
 }
 
 int RenderDevice::CreateShader(const char* vertex_shader_src, const char* fragment_shader_src)
