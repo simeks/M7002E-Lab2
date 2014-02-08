@@ -7,16 +7,57 @@
 
 static const char* vertex_shader_src = " \
 	uniform mat4 model_view_projection_matrix; \
-	in vec3 position; \
+	uniform mat4 model_view_matrix; \
+	\
+	attribute vec3 vertex_position; \
+	attribute vec3 vertex_normal; \
+	\
+	varying vec3 normal_view; /* Normal in view-space */ \
+	varying vec3 position_view; /* Vertex position in view-space */ \
+	\
 	void main() \
 	{ \
-		gl_Position = model_view_projection_matrix * vec4(position, 1.0f); \
+		gl_Position = model_view_projection_matrix * vec4(vertex_position, 1.0); \
+		\
+		/* Transform normals into view-space */ \
+		normal_view = transpose(inverse(model_view_matrix)) * vec4(vertex_normal, 0.0); \
+		position_view = model_view_matrix * vec4(vertex_position, 1.0); \
 	}";
 
 static const char* fragment_shader_src = " \
+	varying vec3 normal_view; /* Normal in view-space */ \
+	varying vec3 position_view; /* Vertex position in view space */ \
+	uniform mat4 model_view_matrix; \
+	\
+	/* Light uniforms */ \
+	uniform vec3 light_direction;\
+	uniform vec3 light_ambient;\
+	uniform vec3 light_diffuse;\
+	uniform vec3 light_specular;\
+	\
+	/* Material uniforms */ \
+	uniform vec3 material_ambient;\
+	uniform vec3 material_diffuse;\
+	uniform vec3 material_specular;\
+	\
+	\
 	void main() \
 	{ \
-		gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); \
+		float specular_power = 2.0; \
+		/* Transform light direction into eye-space as all light calculations are done in view-space */ \
+		vec3 L = (model_view_matrix * vec4(light_direction, 0.0)).xyz; \
+		vec3 v = normalize(-position_view); /* Direction to the camera (The camera is at (0,0,0) as we calculate in view-space) */ \
+		\
+		/* Diffuse and specular lighting, Real-Time Rendering, 5.5, page 110 */ \
+		\
+		vec3 h = normalize(v + L); \
+		float cosTh = max(dot(normal_view, h), 0.0); \
+		float cosTi = max(dot(normal_view, L), 0.0); \
+		\
+		vec3 ambient_term = material_ambient + light_ambient; \
+		vec3 diffuse_term = material_diffuse * light_diffuse; \
+		vec3 specular_term = material_specular * light_specular; \
+		gl_FragColor = vec4((diffuse_term + specular_term * pow(cosTh, specular_power)) * cosTi + ambient_term, 1.0); \
 	}";
 
 
@@ -59,9 +100,17 @@ bool Lab2App::Initialize()
 
 	Material default_material;
 	default_material.shader = _default_shader;
+	default_material.diffuse = Color(0.0f, 0.0f, 1.0f, 1.0f);
+	default_material.specular = Color(0.5f, 0.5f, 0.5f, 1.0f);
 	_scene->SetMaterialTemplate(default_material);
 	
-	_scene->CreateEntity(Entity::ET_CUBE);
+	_scene->CreateEntity(Entity::ET_PYRAMID)->position = Vec3(1.0f, 0.0f, 0.5f);
+	_scene->CreateEntity(Entity::ET_CUBE)->position = Vec3(-1.0f, 0.0f, 0.5f);
+	_scene->CreateEntity(Entity::ET_SPHERE)->position = Vec3(0.0f, 0.0f, -0.5f);
+
+	_scene->GetLight().ambient = Color(0.1f, 0.1f, 0.1f, 1.0f);
+	_scene->GetLight().specular = Color(1.0f, 1.0f, 1.0f, 1.0f);
+	_scene->GetLight().direction = Vec3(0.0f, 1.0f, -0.5f);
 
 	return true;
 }
@@ -83,7 +132,7 @@ void Lab2App::Render(float a)
 {
 	camera_angle = camera_angle + 1.0f * a;
 	
-	_camera.view_matrix = matrix::LookAt(Vec3(5.0f*sinf(camera_angle), 1.5f, 5.0f*cosf(camera_angle)), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
+	_camera.view_matrix = matrix::LookAt(Vec3(5.0f*sinf(camera_angle), 2.5f*sinf(camera_angle*2.0f), 5.0f*cosf(camera_angle)), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
 
 	_matrix_stack.Push();
 

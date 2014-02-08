@@ -71,11 +71,13 @@ void MatrixStack::Apply(RenderDevice& render_device)
 	{
 		State& current_state = _states.top();
 
+		// model_view = view * model
+		Mat4x4 model_view = matrix::Multiply(current_state.view_matrix, current_state.model_matrix);
+		render_device.SetUniformMatrix4f("model_view_matrix",  model_view);
+
 		// Build our model view projection matrix
 		//	model_view_projection = projection * view * model
-		Mat4x4 model_view_projection = matrix::CreateIdentity();
-		model_view_projection = matrix::Multiply(current_state.view_matrix, current_state.model_matrix);
-		model_view_projection = matrix::Multiply(current_state.projection_matrix, model_view_projection);
+		Mat4x4 model_view_projection = matrix::Multiply(current_state.projection_matrix, model_view);
 
 		render_device.SetUniformMatrix4f("model_view_projection_matrix",  model_view_projection);
 

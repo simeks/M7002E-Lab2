@@ -7,7 +7,10 @@
 
 Scene::Scene(PrimitiveFactory* factory) : _primitive_factory(factory)
 {
-
+	_active_light.ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
+	_active_light.diffuse = Color(1.0f, 1.0f, 1.0f, 1.0f);
+	_active_light.specular = Color(0.0f, 0.0f, 0.0f, 1.0f);
+	_active_light.direction = Vec3(0.0f, 1.0f, 0.0f);
 }
 Scene::~Scene()
 {
@@ -37,7 +40,7 @@ Entity* Scene::CreateEntity(Entity::EntityType type)
 		break;
 	case Entity::ET_SPHERE:
 		{
-			entity->primitive = _primitive_factory->CreateSphere(1.0f);
+			entity->primitive = _primitive_factory->CreateSphere(0.5f);
 		}
 		break;
 	default:
@@ -76,6 +79,7 @@ void Scene::DestroyAllEntities()
 
 void Scene::Render(RenderDevice& device, MatrixStack& matrix_stack)
 {
+
 	for(std::vector<Entity*>::iterator it = _entities.begin(); 
 		it != _entities.end(); ++it)
 	{
@@ -84,6 +88,9 @@ void Scene::Render(RenderDevice& device, MatrixStack& matrix_stack)
 		{
 			// Bind shader and set material parameters
 			device.BindShader((*it)->material.shader);
+			
+			BindLightUniforms(device);
+			BindMaterialUniforms(device, (*it)->material);
 		
 			matrix_stack.Push();
 
@@ -103,3 +110,21 @@ void Scene::Render(RenderDevice& device, MatrixStack& matrix_stack)
 	}
 
 }
+Light& Scene::GetLight()
+{
+	return _active_light;
+}
+void Scene::BindMaterialUniforms(RenderDevice& device, const Material& material)
+{
+	device.SetUniform3f("material_ambient",  Vec3(material.ambient.r, material.ambient.g, material.ambient.b));
+	device.SetUniform3f("material_diffuse",  Vec3(material.diffuse.r, material.diffuse.g, material.diffuse.b));
+	device.SetUniform3f("material_specular",  Vec3(material.specular.r, material.specular.g, material.specular.b));
+}
+void Scene::BindLightUniforms(RenderDevice& device)
+{
+	device.SetUniform3f("light_direction", _active_light.direction);
+	device.SetUniform3f("light_ambient",  Vec3(_active_light.ambient.r, _active_light.ambient.g, _active_light.ambient.b));
+	device.SetUniform3f("light_diffuse",  Vec3(_active_light.diffuse.r, _active_light.diffuse.g, _active_light.diffuse.b));
+	device.SetUniform3f("light_specular",  Vec3(_active_light.specular.r, _active_light.specular.g, _active_light.specular.b));
+}
+
