@@ -36,6 +36,9 @@ namespace vector
 	
 	/// @brief Normalizes the specified vector.
 	void Normalize(Vec4& vector);
+
+	/// @brief Returns the length of the specified vector.
+	float Length(const Vec3& vector);
 	
 	/// @brief Calculates the cross product of the two vectors.
 	Vec3 Cross(const Vec3& lhs, const Vec3& rhs);

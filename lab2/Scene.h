@@ -74,7 +74,11 @@ private:
 	/// Binds light specific shader uniforms.
 	void BindLightUniforms(RenderDevice& device);
 
+	void RenderEntity(RenderDevice& device, MatrixStack& matrix_stack, Entity* entity); 
+
+
 	std::vector<Entity*> _entities;
+	Entity* _floor_entity;
 
 	PrimitiveFactory* _primitive_factory;
 	Material _material_template; // Template material which will be used for all new entities.

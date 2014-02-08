@@ -20,6 +20,8 @@ struct Camera
 
 class Scene;
 class PrimitiveFactory;
+struct Entity;
+
 class Lab2App : public App
 {
 public:
@@ -50,6 +52,9 @@ private:
 		Entity* entity; // Selected entity, NULL if none is selected
 		Mode mode;
 
+		Vec3 position;
+		Vec3 offset; // Offset from entity center to mouse position
+
 		Selection() : entity(NULL), mode(IDLE) {}
 	};
 
@@ -62,7 +67,7 @@ private:
 
 	int _default_shader;
 
-	Selection _current_selection;
+	Selection _selection;
 };
 
 

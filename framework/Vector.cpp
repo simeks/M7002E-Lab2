@@ -25,6 +25,11 @@ void vector::Normalize(Vec4& vector)
 	vector.w *= inv_length;
 }
 
+float vector::Length(const Vec3& vector)
+{
+	return sqrtf(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
+}
+
 Vec3 vector::Cross(const Vec3& lhs, const Vec3& rhs)
 {
 	// Cross product: [Real-Time Rendering, A.19, page 896]

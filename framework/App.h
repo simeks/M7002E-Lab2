@@ -2,7 +2,10 @@
 #define __APP_H__
 
 
+#include <SDL.h>
+
 struct SDL_Window;
+
 class RenderDevice;
 class App
 {
@@ -12,6 +15,9 @@ public:
 
 	/// Runs the application, this will not return until the application stops.
 	void Run();
+
+	/// Stops the application.
+	void Stop();
 
 	/// @brief Specifies the window title.
 	void SetWindowTitle(const char* title);
@@ -24,6 +30,9 @@ protected:
 
 	/// @brief Callback invoked once every frame to let the application perform rendering.
 	virtual void Render(float dtime) = 0;
+
+	/// @brief On incomming SDL_Event
+	virtual void OnEvent(SDL_Event* evt) = 0; 
 
 	/// @brief Initializes SDL and creates a new primary window for rendering.
 	/// @return True if initialization was successful, false if not.

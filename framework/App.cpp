@@ -35,7 +35,13 @@ void App::Run()
 		while(SDL_PollEvent(&evt))
 		{
 			if(evt.type == SDL_QUIT) // User closed the main window.
+			{
 				_running = false;
+			}
+			else
+			{
+				OnEvent(&evt);
+			}
 		}
 
 		// Clear the color and depth buffer.
@@ -48,6 +54,10 @@ void App::Run()
 	}
 
 	Shutdown();
+}
+void App::Stop()
+{
+	_running = false;
 }
 
 void App::SetWindowTitle(const char* title)
@@ -63,7 +73,7 @@ bool App::InitializeSDL(uint32_t window_width, uint32_t window_height)
 		debug::Printf("[Error] SDL_Init failed: %s\n", SDL_GetError());
 		return false;
 	}
-
+	
 	_last_tick = SDL_GetTicks();
 
 #ifdef PLATFORM_MACOSX

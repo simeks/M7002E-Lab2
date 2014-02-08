@@ -20,7 +20,8 @@ static const char* vertex_shader_src = " \
 		gl_Position = model_view_projection_matrix * vec4(vertex_position, 1.0); \
 		\
 		/* Transform normals into view-space */ \
-		normal_view = transpose(inverse(model_view_matrix)) * vec4(vertex_normal, 0.0); \
+		normal_view = transpose(inverse(model_view_matrix)) * vec4(normalize(vertex_normal), 0.0); \
+		normal_view = normalize(normal_view); \
 		position_view = model_view_matrix * vec4(vertex_position, 1.0); \
 	}";
 
@@ -28,6 +29,7 @@ static const char* fragment_shader_src = " \
 	varying vec3 normal_view; /* Normal in view-space */ \
 	varying vec3 position_view; /* Vertex position in view space */ \
 	uniform mat4 model_view_matrix; \
+	uniform mat4 view_matrix; \
 	\
 	/* Light uniforms */ \
 	uniform vec3 light_direction;\
@@ -45,7 +47,7 @@ static const char* fragment_shader_src = " \
 	{ \
 		float specular_power = 16.0; \
 		/* Transform light direction into eye-space as all light calculations are done in view-space */ \
-		vec3 L = (model_view_matrix * vec4(light_direction, 0.0)).xyz; \
+		vec3 L = (view_matrix * vec4(light_direction, 0.0)).xyz; \
 		vec3 v = normalize(-position_view); /* Direction to the camera (The camera is at (0,0,0) as we calculate in view-space) */ \
 		\
 		/* Diffuse and specular lighting, Real-Time Rendering, 5.5, page 110 */ \
@@ -108,7 +110,7 @@ bool Lab2App::Initialize()
 
 	_scene->GetLight().ambient = Color(0.01f, 0.01f, 0.01f, 1.0f);
 	_scene->GetLight().specular = Color(1.0f, 1.0f, 1.0f, 1.0f);
-	_scene->GetLight().direction = Vec3(0.0f, 1.0f, -0.5f);
+	_scene->GetLight().direction = Vec3(0.0f, 1.0f, 0.5f);
 
 	return true;
 }
@@ -131,7 +133,7 @@ void Lab2App::Render(float a)
 	camera_angle = camera_angle + 0.0f * a;
 	
 	_camera.position = Vec3(20.0f*sinf(camera_angle), 10.0f, 20.0f*cosf(camera_angle));
-	_camera.position = Vec3(0.0f, 10.0f, 25.0f);
+	_camera.position = Vec3(0.0f, 15.0f, 35.0f);
 	_camera.direction = vector::Subtract(Vec3(0.0f, 0.0f, 0.0f), _camera.position);
 	vector::Normalize(_camera.direction);
 
@@ -148,8 +150,8 @@ void Lab2App::Render(float a)
 
 void Lab2App::OnEvent(SDL_Event* evt)
 {
-	static Entity* selected = NULL;
-	static Vec3 selected_offset(0,0,0);
+	const Uint8* key_states = SDL_GetKeyboardState(NULL);
+
 	switch(evt->type)
 	{
 	case SDL_MOUSEBUTTONDOWN:
@@ -158,36 +160,149 @@ void Lab2App::OnEvent(SDL_Event* evt)
 			Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
 										1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
 
-			selected = _scene->SelectEntity(mouse_position, _camera);
-			if(selected)
+			Entity* entity = _scene->SelectEntity(mouse_position, _camera);
+			if(entity)
 			{
-				selected->material.ambient = Color(1.0f, 0.0f, 0.0f, 1.0f);
+				// Unselect any previous selection first
+				if(_selection.entity)
+				{
+					_selection.entity->material.ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
+					_selection.entity = NULL;
+				}
+
+				_selection.entity = entity;
+				if(key_states[SDL_SCANCODE_S]) // 's' => Scaling
+				{
+					_selection.mode = Selection::SCALE;
+				}
+				else if(key_states[SDL_SCANCODE_R]) // 'r' => Rotate
+				{
+					_selection.mode = Selection::ROTATE;
+				}
+				else
+				{
+					_selection.mode = Selection::MOVE;
+				}
+				_selection.entity->material.ambient = Color(1.0f, 0.0f, 0.0f, 1.0f);
 
 				Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
-				selected_offset = vector::Subtract(selected->position, world_position);
+				_selection.position = world_position;
+				_selection.offset = vector::Subtract(_selection.entity->position, world_position);
+			}
+			else if(_selection.entity)
+			{
+				_selection.mode = Selection::IDLE;
+				_selection.entity->material.ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
+				_selection.entity = NULL;
 			}
 		}
 		break;
 	case SDL_MOUSEBUTTONUP:
 		{
-			if(selected)
+			if(_selection.entity)
 			{
-				selected->material.ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
-				selected = NULL;
+				_selection.mode = Selection::IDLE;
 			}
 		}
 		break;
 	case SDL_MOUSEMOTION:
 		{
-			if(selected)
+			if(_selection.entity)
 			{
-				// Normalize mouse position ([-1.0, 1.0])
-				Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
-											1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
+				if(_selection.mode == Selection::MOVE)
+				{
+					// Normalize mouse position ([-1.0, 1.0])
+					Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
+												1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
 
-				Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
-				selected->position = vector::Add(world_position, selected_offset);
+					Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
+					if(key_states[SDL_SCANCODE_LCTRL])
+					{
+						_selection.entity->position.y = -vector::Subtract(world_position, _selection.position).z;
+					}
+					else
+					{
+						_selection.entity->position = vector::Add(world_position, _selection.offset);
+					}
+				}
+				else if(_selection.mode == Selection::SCALE)
+				{
+					// Normalize mouse position ([-1.0, 1.0])
+					Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
+												1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
+
+					Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
+
+					float distance = vector::Length(vector::Subtract(world_position, _selection.entity->position)) / vector::Length(_selection.offset);
+					_selection.entity->scale = Vec3(distance, distance, distance);
+				}
+				else if(_selection.mode == Selection::ROTATE)
+				{
+					// Normalize mouse position ([-1.0, 1.0])
+					Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
+												1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
+
+					Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
+					Vec3 delta = vector::Subtract(world_position, _selection.entity->position);
+					_selection.entity->rotation.x = delta.x;
+					_selection.entity->rotation.y = delta.z;
+
+				}
 			}
+		}
+		break;
+	case SDL_KEYDOWN:
+		{
+			// Normalize mouse position ([-1.0, 1.0])
+			int mouse_x, mouse_y;
+			SDL_GetMouseState(&mouse_x, &mouse_y);
+			Vec2 mouse_position = Vec2(	2.0f * (float)mouse_x / (float)_viewport.width - 1.0f,
+										1.0f - (2.0f * (float)mouse_y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
+
+			Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
+
+			switch(evt->key.keysym.scancode)
+			{
+			case SDL_SCANCODE_ESCAPE:
+				{
+					Stop();
+				}
+				break;
+			case SDL_SCANCODE_1:
+				{
+					Entity* entity = _scene->CreateEntity(Entity::ET_PYRAMID);
+					entity->position = world_position;
+				}
+				break;
+			case SDL_SCANCODE_2:
+				{
+					Entity* entity = _scene->CreateEntity(Entity::ET_CUBE);
+					entity->position = world_position;
+				}
+				break;
+			case SDL_SCANCODE_3:
+				{
+					Entity* entity = _scene->CreateEntity(Entity::ET_SPHERE);
+					entity->position = world_position;
+				}
+				break;
+			case SDL_SCANCODE_DELETE:
+				{
+					// [Ctrl] + [Delete] => Delete all entities
+					if(key_states[SDL_SCANCODE_LCTRL])
+					{
+						_scene->DestroyAllEntities();
+					}
+					if(_selection.entity)
+					{
+						_scene->DestroyEntity(_selection.entity);
+
+						_selection.mode = Selection::IDLE;
+						_selection.entity = NULL;
+					}
+				}
+				break;
+			};
 		}
 		break;
 	};

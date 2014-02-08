@@ -9,6 +9,7 @@
 struct Primitive
 {
 	DrawCall draw_call;
+	float bounding_radius; // Bounding sphere used for intersection testing.
 };
 
 

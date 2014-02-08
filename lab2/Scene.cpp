@@ -7,6 +7,8 @@
 #include <framework/RenderDevice.h>
 #include <framework/Ray.h>
 
+#include <algorithm>
+
 Scene::Scene(const Material& material, PrimitiveFactory* factory) 
 	: _primitive_factory(factory),
 	_material_template(material)
@@ -17,22 +19,43 @@ Scene::Scene(const Material& material, PrimitiveFactory* factory)
 	_active_light.direction = Vec3(0.0f, 1.0f, 0.0f);
 
 	// Create a floor
-	Entity* floor_entity = new Entity;
-	floor_entity->primitive = _primitive_factory->CreatePlane(Vec2(25.0f, 25.0f));
-	floor_entity->scale = Vec3(1.0f, 1.0f, 1.0f);
-	floor_entity->position = Vec3(0.0f, -0.5f, 0.0f);
-	floor_entity->material = _material_template;
-	floor_entity->material.diffuse = Color(0.0f, 0.0f, 0.0f);
-	_entities.push_back(floor_entity);
+	_floor_entity = new Entity;
+	_floor_entity->primitive = _primitive_factory->CreatePlane(Vec2(25.0f, 25.0f));
+	_floor_entity->scale = Vec3(1.0f, 1.0f, 1.0f);
+	_floor_entity->position = Vec3(0.0f, -0.5f, 0.0f);
+	_floor_entity->material = _material_template;
+	_floor_entity->material.diffuse = Color(0.40f, 0.40f, 0.40f);
+	_floor_entity->material.specular = Color(0.40f, 0.40f, 0.40f);
 }
 Scene::~Scene()
 {
 	// Destroy remaning entities
 	DestroyAllEntities();
+	// Destroy the floor
+	delete _floor_entity;
+	_floor_entity = NULL;
 }
+
+struct EntityDepthSort
+{
+	const Camera& _camera;
+
+	EntityDepthSort(const Camera& camera) : _camera(camera) {}
+
+	bool operator() (Entity* ent1, Entity* ent2) 
+	{
+		float d1 = vector::Length(vector::Subtract(ent1->position, _camera.position));
+		float d2 = vector::Length(vector::Subtract(ent2->position, _camera.position));
+		
+		return (d1 < d2);
+	}
+};
 
 Entity* Scene::SelectEntity(const Vec2& mouse_position, const Camera& camera)
 {
+	// Make sure entities are sorted by depth, this way the select will always chose the closest possible entity.
+	std::sort(_entities.begin(), _entities.end(), EntityDepthSort(camera));
+
 	// Ray in clip-space
 	Vec4 ray_clip = Vec4(mouse_position.x, mouse_position.y, -1.0f, 1.0f); 
 	
@@ -49,7 +72,8 @@ Entity* Scene::SelectEntity(const Vec2& mouse_position, const Camera& camera)
 	for(std::vector<Entity*>::iterator it = _entities.begin(); 
 		it != _entities.end(); ++it)
 	{
-		if(RaySphereIntersect(camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), (*it)->position, 0.5f))
+		float radius = max(max((*it)->scale.x, (*it)->scale.y), (*it)->scale.z) * (*it)->primitive.bounding_radius; // Scale bounding radius
+		if(RaySphereIntersect(camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), (*it)->position, radius))
 		{
 			return (*it);
 		}
@@ -106,6 +130,13 @@ Entity* Scene::CreateEntity(Entity::EntityType type)
 
 	_entities.push_back(entity);
 
+	// Randomize colors for the new object
+	entity->material.diffuse.r = (rand() % 255) / 255.0f;
+	entity->material.diffuse.g = (rand() % 255) / 255.0f;
+	entity->material.diffuse.b = (rand() % 255) / 255.0f;
+
+	entity->material.specular = entity->material.diffuse;
+
 	return entity;
 }
 void Scene::DestroyEntity(Entity* entity)
@@ -131,34 +162,14 @@ void Scene::DestroyAllEntities()
 
 void Scene::Render(RenderDevice& device, MatrixStack& matrix_stack)
 {
+	// Render floor
+	RenderEntity(device, matrix_stack, _floor_entity);
 
+	// Render the rest of the entities
 	for(std::vector<Entity*>::iterator it = _entities.begin(); 
 		it != _entities.end(); ++it)
 	{
-		// Make sure the material have a shader, otherwise we have nothing to render
-		if((*it)->material.shader != -1)
-		{
-			// Bind shader and set material parameters
-			device.BindShader((*it)->material.shader);
-			
-			BindLightUniforms(device);
-			BindMaterialUniforms(device, (*it)->material);
-		
-			matrix_stack.Push();
-
-			// Transform object
-			matrix_stack.Scale3f((*it)->scale);
-			matrix_stack.Translate3f((*it)->position);
-			matrix_stack.Rotate3f((*it)->rotation.x, (*it)->rotation.y, (*it)->rotation.z);
-
-			// Apply transformations to pipeline
-			matrix_stack.Apply(device);
-
-			// Perform the actual draw call
-			device.Draw((*it)->primitive.draw_call);
-
-			matrix_stack.Pop();
-		}
+		RenderEntity(device, matrix_stack, *it);
 	}
 
 }
@@ -179,4 +190,30 @@ void Scene::BindLightUniforms(RenderDevice& device)
 	device.SetUniform3f("light_diffuse",  Vec3(_active_light.diffuse.r, _active_light.diffuse.g, _active_light.diffuse.b));
 	device.SetUniform3f("light_specular",  Vec3(_active_light.specular.r, _active_light.specular.g, _active_light.specular.b));
 }
+void Scene::RenderEntity(RenderDevice& device, MatrixStack& matrix_stack, Entity* entity)
+{
+	// Make sure the material have a shader, otherwise we have nothing to render
+	if(entity->material.shader != -1)
+	{
+		// Bind shader and set material parameters
+		device.BindShader(entity->material.shader);
+			
+		BindLightUniforms(device);
+		BindMaterialUniforms(device, entity->material);
+		
+		matrix_stack.Push();
 
+		// Transform object
+		matrix_stack.Translate3f(entity->position);
+		matrix_stack.Scale3f(entity->scale);
+		matrix_stack.Rotate3f(entity->rotation.x, entity->rotation.y, entity->rotation.z);
+
+		// Apply transformations to pipeline
+		matrix_stack.Apply(device);
+
+		// Perform the actual draw call
+		device.Draw(entity->primitive.draw_call);
+
+		matrix_stack.Pop();
+	}
+}

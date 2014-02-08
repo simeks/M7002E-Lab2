@@ -88,6 +88,8 @@ Primitive PrimitiveFactory::CreatePyramid(const Vec3& size)
 	primitive.draw_call.vertex_offset = 0;
 	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F_NORMAL3F;
 	primitive.draw_call.index_buffer = -1; // Specify that we don't want to use an index buffer
+	
+	primitive.bounding_radius = sqrtf(half_size.x * half_size.x + half_size.y * half_size.y + half_size.z * half_size.z);
 
 	return primitive;
 }
@@ -144,7 +146,7 @@ Primitive PrimitiveFactory::CreateCube(const Vec3& size)
 	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;		vertex_data[i++] = normal.z;
 
 	// Front
-	normal = Vec3(0.0f, 0.0f, -1.0f); // Front
+	normal = Vec3(0.0f, 0.0f, 1.0f); // Front
 
 	vertex_data[i++] = -half_size.x;	vertex_data[i++] = -half_size.y;	vertex_data[i++] = half_size.z; // Bottom left
 	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;		vertex_data[i++] = normal.z;
@@ -161,7 +163,7 @@ Primitive PrimitiveFactory::CreateCube(const Vec3& size)
 	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;		vertex_data[i++] = normal.z;
 	
 	// Back
-	normal = Vec3(0.0f, 0.0f, 1.0f); // Back
+	normal = Vec3(0.0f, 0.0f, -1.0f); // Back
 
 	vertex_data[i++] = -half_size.x;	vertex_data[i++] = -half_size.y;	vertex_data[i++] = -half_size.z; // Bottom left
 	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;		vertex_data[i++] = normal.z;
@@ -216,6 +218,8 @@ Primitive PrimitiveFactory::CreateCube(const Vec3& size)
 	primitive.draw_call.vertex_offset = 0;
 	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F_NORMAL3F;
 	primitive.draw_call.index_buffer = -1; // Specify that we don't want to use an index buffer
+	
+	primitive.bounding_radius = sqrtf(half_size.x * half_size.x + half_size.y * half_size.y + half_size.z * half_size.z);
 
 	return primitive;
 }
@@ -275,6 +279,8 @@ Primitive PrimitiveFactory::CreateSphere(float radius)
 	primitive.draw_call.index_buffer = _render_device->CreateIndexBuffer(primitive.draw_call.index_count, index_data);
 	
 	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F_NORMAL3F;
+	
+	primitive.bounding_radius = radius;
 
 	return primitive;
 }
@@ -314,6 +320,8 @@ Primitive PrimitiveFactory::CreatePlane(const Vec2& size)
 	primitive.draw_call.vertex_offset = 0;
 	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F_NORMAL3F;
 	primitive.draw_call.index_buffer = -1; // Specify that we don't want to use an index buffer
+
+	primitive.bounding_radius = sqrtf(half_size.x * half_size.x + half_size.y * half_size.y);
 
 	return primitive;
 }
