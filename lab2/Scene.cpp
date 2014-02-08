@@ -1,25 +1,77 @@
 #include <framework/Common.h>
 
 #include "Scene.h"
+#include "App.h"
 #include "MatrixStack.h"
 
 #include <framework/RenderDevice.h>
+#include <framework/Ray.h>
 
-Scene::Scene(PrimitiveFactory* factory) : _primitive_factory(factory)
+Scene::Scene(const Material& material, PrimitiveFactory* factory) 
+	: _primitive_factory(factory),
+	_material_template(material)
 {
 	_active_light.ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
 	_active_light.diffuse = Color(1.0f, 1.0f, 1.0f, 1.0f);
 	_active_light.specular = Color(0.0f, 0.0f, 0.0f, 1.0f);
 	_active_light.direction = Vec3(0.0f, 1.0f, 0.0f);
+
+	// Create a floor
+	Entity* floor_entity = new Entity;
+	floor_entity->primitive = _primitive_factory->CreatePlane(Vec2(25.0f, 25.0f));
+	floor_entity->scale = Vec3(1.0f, 1.0f, 1.0f);
+	floor_entity->position = Vec3(0.0f, -0.5f, 0.0f);
+	floor_entity->material = _material_template;
+	floor_entity->material.diffuse = Color(0.0f, 0.0f, 0.0f);
+	_entities.push_back(floor_entity);
 }
 Scene::~Scene()
 {
 	// Destroy remaning entities
 	DestroyAllEntities();
 }
-void Scene::SetMaterialTemplate(const Material& material)
+
+Entity* Scene::SelectEntity(const Vec2& mouse_position, const Camera& camera)
 {
-	_material_template = material;
+	// Ray in clip-space
+	Vec4 ray_clip = Vec4(mouse_position.x, mouse_position.y, -1.0f, 1.0f); 
+	
+	// Transform ray into view-space
+	Vec4 ray_view = matrix::Multiply(matrix::Inverse(camera.projection_matrix), ray_clip);
+	ray_view = Vec4(ray_view.x, ray_view.y, -1.0f, 0.0f);
+
+	// Transform ray into world-space
+	Mat4x4 view = matrix::LookAt(camera.position, vector::Add(camera.position, camera.direction), Vec3(0.0f, 1.0f, 0.0f)); // Build the view matrix
+	
+	Vec4 ray_world = matrix::Multiply(matrix::Inverse(view), ray_view);
+	vector::Normalize(ray_world);
+	
+	for(std::vector<Entity*>::iterator it = _entities.begin(); 
+		it != _entities.end(); ++it)
+	{
+		if(RaySphereIntersect(camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), (*it)->position, 0.5f))
+		{
+			return (*it);
+		}
+	}
+	return NULL;
+}
+Vec3 Scene::ToWorld(const Vec2& mouse_position, const Camera& camera)
+{
+	// Ray in clip-space
+	Vec4 ray_clip = Vec4(mouse_position.x, mouse_position.y, -1.0f, 1.0f); 
+	
+	// Transform ray into view-space
+	Vec4 ray_view = matrix::Multiply(matrix::Inverse(camera.projection_matrix), ray_clip);
+	ray_view = Vec4(ray_view.x, ray_view.y, -1.0f, 0.0f);
+
+	// Transform ray into world-space
+	Mat4x4 view = matrix::LookAt(camera.position, vector::Add(camera.position, camera.direction), Vec3(0.0f, 1.0f, 0.0f)); // Build the view matrix
+	
+	Vec4 ray_world = matrix::Multiply(matrix::Inverse(view), ray_view);
+	vector::Normalize(ray_world);
+
+	return RayPlaneIntersect(camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), Vec3(0.0f, 1.0f, 0.0f));
 }
 
 Entity* Scene::CreateEntity(Entity::EntityType type)

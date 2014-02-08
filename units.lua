@@ -32,6 +32,7 @@ Program {
 		CPPPATH = { 
 			"lab2",
 			".",
+			"dependencies/SDL2-2.0.1/include",
 			"dependencies/glew/include",
 		}, 
 		LIBPATH = {

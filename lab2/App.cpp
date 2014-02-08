@@ -43,7 +43,7 @@ static const char* fragment_shader_src = " \
 	\
 	void main() \
 	{ \
-		float specular_power = 2.0; \
+		float specular_power = 16.0; \
 		/* Transform light direction into eye-space as all light calculations are done in view-space */ \
 		vec3 L = (model_view_matrix * vec4(light_direction, 0.0)).xyz; \
 		vec3 v = normalize(-position_view); /* Direction to the camera (The camera is at (0,0,0) as we calculate in view-space) */ \
@@ -88,27 +88,25 @@ bool Lab2App::Initialize()
 
 	// Camera setup
 	// Set the perspective, 45 degrees FOV, aspect ratio to match viewport, z range: [1.0, 1000.0]
-	_camera.projection_matrix = matrix::CreatePerspective(45.0f*(float)MATH_PI/180.0f, (float)win_width/(float)win_height, 1.0f, 1000.0f);
-	
-	// Set the camera position to (0, 0, 400) and make it look at the center of the scene (0, 0, 0)
-	_camera.view_matrix = matrix::LookAt(Vec3(5.0f, 2.5f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
+	_camera.projection_matrix = matrix::CreatePerspective(30.0f*(float)MATH_PI/180.0f, (float)win_width/(float)win_height, 1.0f, 1000.0f);
+	_camera.position = Vec3(0.0f, 0.0f, 0.0f);
+	_camera.direction = Vec3(0.0f, 0.0f, -1.0f);
 
 	_primitive_factory = new PrimitiveFactory(_render_device);
-	_scene = new Scene(_primitive_factory);
-
+	
 	_default_shader = _render_device->CreateShader(vertex_shader_src, fragment_shader_src);
 
 	Material default_material;
 	default_material.shader = _default_shader;
 	default_material.diffuse = Color(0.0f, 0.0f, 1.0f, 1.0f);
 	default_material.specular = Color(0.5f, 0.5f, 0.5f, 1.0f);
-	_scene->SetMaterialTemplate(default_material);
-	
+	_scene = new Scene(default_material, _primitive_factory);
+
 	_scene->CreateEntity(Entity::ET_PYRAMID)->position = Vec3(1.0f, 0.0f, 0.5f);
 	_scene->CreateEntity(Entity::ET_CUBE)->position = Vec3(-1.0f, 0.0f, 0.5f);
 	_scene->CreateEntity(Entity::ET_SPHERE)->position = Vec3(0.0f, 0.0f, -0.5f);
 
-	_scene->GetLight().ambient = Color(0.1f, 0.1f, 0.1f, 1.0f);
+	_scene->GetLight().ambient = Color(0.01f, 0.01f, 0.01f, 1.0f);
 	_scene->GetLight().specular = Color(1.0f, 1.0f, 1.0f, 1.0f);
 	_scene->GetLight().direction = Vec3(0.0f, 1.0f, -0.5f);
 
@@ -127,20 +125,70 @@ void Lab2App::Shutdown()
 
 	ShutdownSDL();
 }
-float camera_angle = 0.0f;
 void Lab2App::Render(float a)
 {
-	camera_angle = camera_angle + 1.0f * a;
+	static float camera_angle = 0.0f;
+	camera_angle = camera_angle + 0.0f * a;
 	
-	_camera.view_matrix = matrix::LookAt(Vec3(5.0f*sinf(camera_angle), 2.5f*sinf(camera_angle*2.0f), 5.0f*cosf(camera_angle)), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
+	_camera.position = Vec3(20.0f*sinf(camera_angle), 10.0f, 20.0f*cosf(camera_angle));
+	_camera.position = Vec3(0.0f, 10.0f, 25.0f);
+	_camera.direction = vector::Subtract(Vec3(0.0f, 0.0f, 0.0f), _camera.position);
+	vector::Normalize(_camera.direction);
 
 	_matrix_stack.Push();
 
 	// Setup camera transforms
 	_matrix_stack.SetProjectionMatrix(_camera.projection_matrix);
-	_matrix_stack.SetViewMatrix(_camera.view_matrix);
+	_matrix_stack.SetViewMatrix(matrix::LookAt(_camera.position, vector::Add(_camera.position, _camera.direction), Vec3(0.0f, 1.0f, 0.0f)));
 
 	_scene->Render(*_render_device, _matrix_stack);
 	
 	_matrix_stack.Pop();
+}
+
+void Lab2App::OnEvent(SDL_Event* evt)
+{
+	static Entity* selected = NULL;
+	static Vec3 selected_offset(0,0,0);
+	switch(evt->type)
+	{
+	case SDL_MOUSEBUTTONDOWN:
+		{
+			// Normalize mouse position ([-1.0, 1.0])
+			Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
+										1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
+
+			selected = _scene->SelectEntity(mouse_position, _camera);
+			if(selected)
+			{
+				selected->material.ambient = Color(1.0f, 0.0f, 0.0f, 1.0f);
+
+				Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
+				selected_offset = vector::Subtract(selected->position, world_position);
+			}
+		}
+		break;
+	case SDL_MOUSEBUTTONUP:
+		{
+			if(selected)
+			{
+				selected->material.ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
+				selected = NULL;
+			}
+		}
+		break;
+	case SDL_MOUSEMOTION:
+		{
+			if(selected)
+			{
+				// Normalize mouse position ([-1.0, 1.0])
+				Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
+											1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
+
+				Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
+				selected->position = vector::Add(world_position, selected_offset);
+			}
+		}
+		break;
+	};
 }

@@ -23,6 +23,7 @@ struct DrawCall
 	
 	vertex_format::VertexFormat vertex_format; // Specifies the vertex format in the vertex buffer. See enum VertexFormat
 
+	DrawCall() : vertex_buffer(-1), vertex_offset(0), vertex_count(0), index_buffer(-1), index_count(0) {}
 };
 
 /// @brief Render device handling low-level opengl calls.

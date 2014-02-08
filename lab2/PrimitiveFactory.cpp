@@ -278,6 +278,45 @@ Primitive PrimitiveFactory::CreateSphere(float radius)
 
 	return primitive;
 }
+Primitive PrimitiveFactory::CreatePlane(const Vec2& size)
+{
+	Primitive primitive;
+	primitive.draw_call.draw_mode = GL_TRIANGLES;
+
+	primitive.draw_call.vertex_count = 6; 
+
+	float vertex_data[6*6]; // 6 vertices, 6 floats each (Px, Py, Pz, Nx, Ny, Nz)
+	int i = 0;
+
+	Vec2 half_size;
+	half_size.x = size.x * 0.5f;
+	half_size.y = size.y * 0.5f;
+	
+	// Top
+	Vec3 normal = Vec3(0.0f, 1.0f, 0.0f); // Up
+
+	vertex_data[i++] = -half_size.x;	vertex_data[i++] = 0.0f;		vertex_data[i++] = -half_size.y; // Bottom left
+	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;	vertex_data[i++] = normal.z;
+	vertex_data[i++] = half_size.x;		vertex_data[i++] = 0.0f;		vertex_data[i++] = half_size.y; // Top right
+	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;	vertex_data[i++] = normal.z;
+	vertex_data[i++] = half_size.x;		vertex_data[i++] = 0.0f;		vertex_data[i++] = -half_size.y; // Bottom right
+	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;	vertex_data[i++] = normal.z;
+	
+	vertex_data[i++] = -half_size.x;	vertex_data[i++] = 0.0f;		vertex_data[i++] = -half_size.y; // Bottom left
+	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;	vertex_data[i++] = normal.z;
+	vertex_data[i++] = -half_size.x;	vertex_data[i++] = 0.0f;		vertex_data[i++] = half_size.y; // Top left
+	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;	vertex_data[i++] = normal.z;
+	vertex_data[i++] = half_size.x;		vertex_data[i++] = 0.0f;		vertex_data[i++] = half_size.y; // Top right
+	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;	vertex_data[i++] = normal.z;
+	
+
+	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(6*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_offset = 0;
+	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F_NORMAL3F;
+	primitive.draw_call.index_buffer = -1; // Specify that we don't want to use an index buffer
+
+	return primitive;
+}
 void PrimitiveFactory::DestroyPrimitive(Primitive& primitive)
 {
 	// Delete the buffers that the primitive holds

@@ -32,6 +32,10 @@ public:
 	/// @brief Creates a sphere.
 	/// @param radius The radius of the sphere.
 	Primitive CreateSphere(float radius);
+	
+	/// @brief Creates a plane.
+	/// @param size Size of the plane.
+	Primitive CreatePlane(const Vec2& size);
 
 	/// @brief Destroys the specified primitive, releasing any resources it haves.
 	void DestroyPrimitive(Primitive& primitive);
