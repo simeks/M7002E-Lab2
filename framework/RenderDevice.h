@@ -5,7 +5,8 @@ namespace vertex_format
 {
 	enum VertexFormat
 	{
-		VF_POSITION3F // Each vertex holds only a position: x, y, z
+		VF_POSITION3F, // Each vertex holds only a position: x, y, z
+		VF_POSITION3F_NORMAL3F // Each vertex first holds the position (Px, Py, Pz) and then the normal (Nx, Ny, Nz)
 	};
 };
 

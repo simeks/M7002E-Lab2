@@ -152,10 +152,33 @@ void RenderDevice::Draw(const DrawCall& draw_call)
 									GL_FLOAT, // Format,
 									GL_FALSE, // Data should not be normalized
 									0, // Buffer only contains positions so no need to specify stride.
-									0 // Offset to the first position element in the buffer.
+									0 
 								); 
 
 			glEnableVertexAttribArray(0);
+		}
+		break;
+	case vertex_format::VF_POSITION3F_NORMAL3F:
+		{
+			// Specifies the location and format of the position data.
+			glVertexAttribPointer(	0, // Attribute index 0
+									3, // 3 floats (Px, Py, Pz)
+									GL_FLOAT, // Format,
+									GL_FALSE, // Data should not be normalized
+									sizeof(float)*6, 
+									0 
+								); 
+			glEnableVertexAttribArray(0);
+
+			// Specifies the location and format of the normal data.
+			glVertexAttribPointer(	1, // Attribute index 1
+									3, // 3 floats (Nx, Ny, Nz)
+									GL_FLOAT, // Format,
+									GL_FALSE, // Data should not be normalized
+									sizeof(float)*6, 
+									(void*)(sizeof(float)*3)
+								); 
+			glEnableVertexAttribArray(1);
 		}
 		break;
 	};
@@ -173,6 +196,7 @@ void RenderDevice::Draw(const DrawCall& draw_call)
 	}
 
 	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
 }
 
 void RenderDevice::SetClearColor(float r, float g, float b, float a)
