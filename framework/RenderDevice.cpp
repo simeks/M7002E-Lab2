@@ -97,6 +97,28 @@ void RenderDevice::SetUniform4f(const char* name, const Vec4& value)
 	// Set the value at the found location
 	glUniform4f(location, value.x, value.y, value.z, value.w);
 }
+void RenderDevice::SetUniform3f(const char* name, const Vec3& value)
+{
+	if(_current_shader == -1) // Nothing to do if no shader is bound.
+	{
+		debug::Printf("RenderDevice: Failed setting uniform value; no shader bound.\n");
+		return;
+	}
+
+	std::map<int, Shader>::iterator it = _shaders.find(_current_shader);
+	assert(it != _shaders.end());
+
+	// Find the location of the variable with the specified name
+	GLint location = glGetUniformLocation(it->second.program, name);
+	if(location == -1)
+	{
+		debug::Printf("RenderDevice: No uniform variable with the name '%s' found.\n", name);
+		return;
+	}
+
+	// Set the value at the found location
+	glUniform3f(location, value.x, value.y, value.z);
+}
 void RenderDevice::SetUniformMatrix4f(const char* name, const Mat4x4& value)
 {
 	if(_current_shader == -1) // Nothing to do if no shader is bound.

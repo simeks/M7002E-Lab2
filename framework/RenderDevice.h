@@ -51,6 +51,11 @@ public:
 	/// @brief Specifies the value of a uniform variable.
 	/// @param name Name of the uniform variable.
 	/// @param value Specifies the new value.
+	void SetUniform3f(const char* name, const Vec3& value);
+
+	/// @brief Specifies the value of a uniform variable.
+	/// @param name Name of the uniform variable.
+	/// @param value Specifies the new value.
 	void SetUniformMatrix4f(const char* name, const Mat4x4& value);
 
 	/// @param draw_mode Specifies what kind of primitives to render.
