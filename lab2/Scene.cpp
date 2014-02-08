@@ -35,6 +35,11 @@ Entity* Scene::CreateEntity(Entity::EntityType type)
 			entity->primitive = _primitive_factory->CreateCube(Vec3(1.0f, 1.0f, 1.0f));
 		}
 		break;
+	case Entity::ET_SPHERE:
+		{
+			entity->primitive = _primitive_factory->CreateSphere(1.0f);
+		}
+		break;
 	default:
 		assert(false);
 	};

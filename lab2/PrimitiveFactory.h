@@ -29,10 +29,9 @@ public:
 	/// @param size The size of the cube.
 	Primitive CreateCube(const Vec3& size);
 
-	/// @brief Creates a filled circle.
-	/// @param radius The radius of the circle.
-	/// @param color The color of the circle.
-	Primitive CreateFilledCircle(float radius);
+	/// @brief Creates a sphere.
+	/// @param radius The radius of the sphere.
+	Primitive CreateSphere(float radius);
 
 	/// @brief Destroys the specified primitive, releasing any resources it haves.
 	void DestroyPrimitive(Primitive& primitive);

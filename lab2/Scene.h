@@ -8,7 +8,8 @@ struct Entity
 	enum EntityType
 	{
 		ET_PYRAMID,
-		ET_CUBE
+		ET_CUBE,
+		ET_SPHERE
 	};
 
 	Primitive primitive;
