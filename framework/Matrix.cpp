@@ -214,6 +214,17 @@ Mat4x4 matrix::Multiply(const Mat4x4& lhs, const Mat4x4& rhs)
 	return result;
 }
 
+Vec4 matrix::Multiply(const Mat4x4& lhs, const Vec4& rhs)
+{
+	Vec4 result;
+	result.x = lhs.col[0].x * rhs.x + lhs.col[1].x * rhs.y + lhs.col[2].x * rhs.z + lhs.col[3].x * rhs.w;
+	result.y = lhs.col[0].y * rhs.x + lhs.col[1].y * rhs.y + lhs.col[2].y * rhs.z + lhs.col[3].y * rhs.w;
+	result.z = lhs.col[0].z * rhs.x + lhs.col[1].z * rhs.y + lhs.col[2].z * rhs.z + lhs.col[3].z * rhs.w;
+	result.w = lhs.col[0].w * rhs.x + lhs.col[1].w * rhs.y + lhs.col[2].w * rhs.z + lhs.col[3].w * rhs.w;
+
+	return result;
+}
+
 float matrix::Determinant(const Mat4x4& m)
 {
 	/*

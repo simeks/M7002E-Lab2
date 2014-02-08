@@ -13,6 +13,18 @@ void vector::Normalize(Vec3& vector)
 	vector.z *= inv_length;
 }
 	
+void vector::Normalize(Vec4& vector)
+{
+	// Normalization: [Real-Time Rendering, A.19, page 894]
+	//	N(p) = (1 / ||p||) * p
+
+	float inv_length = 1.0f / sqrtf(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z + vector.w*vector.w); // ||p|| 
+	vector.x *= inv_length;
+	vector.y *= inv_length;
+	vector.z *= inv_length;
+	vector.w *= inv_length;
+}
+
 Vec3 vector::Cross(const Vec3& lhs, const Vec3& rhs)
 {
 	// Cross product: [Real-Time Rendering, A.19, page 896]
@@ -28,6 +40,17 @@ float vector::Dot(const Vec3& lhs, const Vec3& rhs)
 
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z; 
 }
+
+Vec3 vector::Add(const Vec3& lhs, const Vec3& rhs)
+{
+	// Addition: [Real-Time Rendering, A.2, page 890]
+	//	U + V = (	Ux + Vx
+	//				Uy + Vy
+	//				Uz + Vz ... )
+
+	return Vec3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
+}
+
 
 Vec3 vector::Subtract(const Vec3& lhs, const Vec3& rhs)
 {

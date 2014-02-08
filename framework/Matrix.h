@@ -49,6 +49,9 @@ namespace matrix
 	/// @brief Multiplies two matrices.
 	Mat4x4 Multiply(const Mat4x4& lhs, const Mat4x4& rhs);
 
+	/// @brief Multiplies a matrix and a vector.
+	Vec4 Multiply(const Mat4x4& lhs, const Vec4& rhs);
+
 	/// @brief Calculates the determinant of the specified matrix.
 	float Determinant(const Mat4x4& m);
 

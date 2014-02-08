@@ -34,11 +34,17 @@ namespace vector
 	/// @brief Normalizes the specified vector.
 	void Normalize(Vec3& vector);
 	
+	/// @brief Normalizes the specified vector.
+	void Normalize(Vec4& vector);
+	
 	/// @brief Calculates the cross product of the two vectors.
 	Vec3 Cross(const Vec3& lhs, const Vec3& rhs);
 	
 	/// @brief Calculates the dot product of the two vectors.
 	float Dot(const Vec3& lhs, const Vec3& rhs);
+	
+	/// @brief Adds two vectors.
+	Vec3 Add(const Vec3& lhs, const Vec3& rhs);
 
 	/// @brief Subtracts two vectors in the specified order.
 	Vec3 Subtract(const Vec3& lhs, const Vec3& rhs);
