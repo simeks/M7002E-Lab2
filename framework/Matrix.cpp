@@ -213,3 +213,64 @@ Mat4x4 matrix::Multiply(const Mat4x4& lhs, const Mat4x4& rhs)
 	
 	return result;
 }
+
+float matrix::Determinant(const Mat4x4& m)
+{
+	/*
+	*	| m00 m01 m02 m03 |			| m11 m12 m13 |			| m01 m02 m03 |			| m01 m02 m03 |			| m01 m02 m03 |
+	*	| m10 m11 m12 m13 |	= m00 *	| m21 m22 m23 | - m10 *	| m21 m22 m23 | + m20 *	| m11 m12 m13 | - m30 *	| m11 m12 m13 |
+	*	| m20 m21 m22 m23 |			| m31 m32 m33 |			| m31 m32 m33 |			| m31 m32 m33 |			| m21 m22 m23 |
+	*	| m30 m31 m32 m33 |
+	*
+	*/
+
+	float det_00 = (m.col[1].y*m.col[2].z*m.col[3].w) + (m.col[2].y*m.col[3].z*m.col[1].w) + (m.col[3].y*m.col[1].z*m.col[2].w) 
+		- (m.col[3].y*m.col[2].z*m.col[1].w) - (m.col[1].y*m.col[3].z*m.col[2].w) - (m.col[2].y*m.col[1].z*m.col[3].w);
+
+	float det_10 = (m.col[1].x*m.col[2].z*m.col[3].w) + (m.col[2].x*m.col[3].z*m.col[1].w) + (m.col[3].x*m.col[1].z*m.col[2].w) 
+		- (m.col[3].x*m.col[2].z*m.col[1].w) - (m.col[1].x*m.col[3].z*m.col[2].w) - (m.col[2].x*m.col[1].z*m.col[3].w);
+
+	float det_20 = (m.col[1].x*m.col[2].y*m.col[3].w) + (m.col[2].x*m.col[3].y*m.col[1].w) + (m.col[3].x*m.col[1].y*m.col[2].w) 
+		- (m.col[3].x*m.col[2].y*m.col[1].w) - (m.col[1].x*m.col[3].y*m.col[2].w) - (m.col[2].x*m.col[1].y*m.col[3].w);
+
+	float det_30 = (m.col[1].x*m.col[2].y*m.col[3].z) + (m.col[2].x*m.col[3].y*m.col[1].z) + (m.col[3].x*m.col[1].y*m.col[2].z) 
+		- (m.col[3].x*m.col[2].y*m.col[1].z) - (m.col[1].x*m.col[3].y*m.col[2].z) - (m.col[2].x*m.col[1].y*m.col[3].z);
+
+	return (m.col[0].x * det_00 - m.col[0].y * det_10 + m.col[0].z * det_20 - m.col[0].w * det_30);
+}
+Mat4x4 matrix::Inverse(const Mat4x4& m)
+{
+	// http://www.cg.info.hiroshima-cu.ac.jp/~miyazaki/knowledge/teche23.html
+
+
+	Mat4x4 result;
+	result.col[0].x = m.col[2].y*m.col[3].z*m.col[1].w - m.col[3].y*m.col[2].z*m.col[1].w + m.col[3].y*m.col[1].z*m.col[2].w - m.col[1].y*m.col[3].z*m.col[2].w - m.col[2].y*m.col[1].z*m.col[3].w + m.col[1].y*m.col[2].z*m.col[3].w;
+	result.col[1].x = m.col[3].x*m.col[2].z*m.col[1].w - m.col[2].x*m.col[3].z*m.col[1].w - m.col[3].x*m.col[1].z*m.col[2].w + m.col[1].x*m.col[3].z*m.col[2].w + m.col[2].x*m.col[1].z*m.col[3].w - m.col[1].x*m.col[2].z*m.col[3].w;
+	result.col[2].x = m.col[2].x*m.col[3].y*m.col[1].w - m.col[3].x*m.col[2].y*m.col[1].w + m.col[3].x*m.col[1].y*m.col[2].w - m.col[1].x*m.col[3].y*m.col[2].w - m.col[2].x*m.col[1].y*m.col[3].w + m.col[1].x*m.col[2].y*m.col[3].w;
+	result.col[3].x = m.col[3].x*m.col[2].y*m.col[1].z - m.col[2].x*m.col[3].y*m.col[1].z - m.col[3].x*m.col[1].y*m.col[2].z + m.col[1].x*m.col[3].y*m.col[2].z + m.col[2].x*m.col[1].y*m.col[3].z - m.col[1].x*m.col[2].y*m.col[3].z;
+	
+	result.col[0].y = m.col[3].y*m.col[2].z*m.col[0].w - m.col[2].y*m.col[3].z*m.col[0].w - m.col[3].y*m.col[0].z*m.col[2].w + m.col[0].y*m.col[3].z*m.col[2].w + m.col[2].y*m.col[0].z*m.col[3].w - m.col[0].y*m.col[2].z*m.col[3].w;
+	result.col[1].y = m.col[2].x*m.col[3].z*m.col[0].w - m.col[3].x*m.col[2].z*m.col[0].w + m.col[3].x*m.col[0].z*m.col[2].w - m.col[0].x*m.col[3].z*m.col[2].w - m.col[2].x*m.col[0].z*m.col[3].w + m.col[0].x*m.col[2].z*m.col[3].w;
+	result.col[2].y = m.col[3].x*m.col[2].y*m.col[0].w - m.col[2].x*m.col[3].y*m.col[0].w - m.col[3].x*m.col[0].y*m.col[2].w + m.col[0].x*m.col[3].y*m.col[2].w + m.col[2].x*m.col[0].y*m.col[3].w - m.col[0].x*m.col[2].y*m.col[3].w;
+	result.col[3].y = m.col[2].x*m.col[3].y*m.col[0].z - m.col[3].x*m.col[2].y*m.col[0].z + m.col[3].x*m.col[0].y*m.col[2].z - m.col[0].x*m.col[3].y*m.col[2].z - m.col[2].x*m.col[0].y*m.col[3].z + m.col[0].x*m.col[2].y*m.col[3].z;
+	
+	result.col[0].z = m.col[1].y*m.col[3].z*m.col[0].w - m.col[3].y*m.col[1].z*m.col[0].w + m.col[3].y*m.col[0].z*m.col[1].w - m.col[0].y*m.col[3].z*m.col[1].w - m.col[1].y*m.col[0].z*m.col[3].w + m.col[0].y*m.col[1].z*m.col[3].w;
+	result.col[1].z = m.col[3].x*m.col[1].z*m.col[0].w - m.col[1].x*m.col[3].z*m.col[0].w - m.col[3].x*m.col[0].z*m.col[1].w + m.col[0].x*m.col[3].z*m.col[1].w + m.col[1].x*m.col[0].z*m.col[3].w - m.col[0].x*m.col[1].z*m.col[3].w;
+	result.col[2].z = m.col[1].x*m.col[3].y*m.col[0].w - m.col[3].x*m.col[1].y*m.col[0].w + m.col[3].x*m.col[0].y*m.col[1].w - m.col[0].x*m.col[3].y*m.col[1].w - m.col[1].x*m.col[0].y*m.col[3].w + m.col[0].x*m.col[1].y*m.col[3].w;
+	result.col[3].z = m.col[3].x*m.col[1].y*m.col[0].z - m.col[1].x*m.col[3].y*m.col[0].z - m.col[3].x*m.col[0].y*m.col[1].z + m.col[0].x*m.col[3].y*m.col[1].z + m.col[1].x*m.col[0].y*m.col[3].z - m.col[0].x*m.col[1].y*m.col[3].z;
+	
+	result.col[0].w = m.col[2].y*m.col[1].z*m.col[0].w - m.col[1].y*m.col[2].z*m.col[0].w - m.col[2].y*m.col[0].z*m.col[1].w + m.col[0].y*m.col[2].z*m.col[1].w + m.col[1].y*m.col[0].z*m.col[2].w - m.col[0].y*m.col[1].z*m.col[2].w;
+	result.col[1].w = m.col[1].x*m.col[2].z*m.col[0].w - m.col[2].x*m.col[1].z*m.col[0].w + m.col[2].x*m.col[0].z*m.col[1].w - m.col[0].x*m.col[2].z*m.col[1].w - m.col[1].x*m.col[0].z*m.col[2].w + m.col[0].x*m.col[1].z*m.col[2].w;
+	result.col[2].w = m.col[2].x*m.col[1].y*m.col[0].w - m.col[1].x*m.col[2].y*m.col[0].w - m.col[2].x*m.col[0].y*m.col[1].w + m.col[0].x*m.col[2].y*m.col[1].w + m.col[1].x*m.col[0].y*m.col[2].w - m.col[0].x*m.col[1].y*m.col[2].w;
+	result.col[3].w = m.col[1].x*m.col[2].y*m.col[0].z - m.col[2].x*m.col[1].y*m.col[0].z + m.col[2].x*m.col[0].y*m.col[1].z - m.col[0].x*m.col[2].y*m.col[1].z - m.col[1].x*m.col[0].y*m.col[2].z + m.col[0].x*m.col[1].y*m.col[2].z;
+
+
+	float inv_det = 1.0f / Determinant(m);
+	result.col[0].x *= inv_det; result.col[1].x *= inv_det; result.col[2].x *= inv_det; result.col[3].x *= inv_det;
+	result.col[0].y *= inv_det; result.col[1].y *= inv_det; result.col[2].y *= inv_det; result.col[3].y *= inv_det;
+	result.col[0].z *= inv_det; result.col[1].z *= inv_det; result.col[2].z *= inv_det; result.col[3].z *= inv_det;
+	result.col[0].w *= inv_det; result.col[1].w *= inv_det; result.col[2].w *= inv_det; result.col[3].w *= inv_det;
+
+	return result;
+}
+

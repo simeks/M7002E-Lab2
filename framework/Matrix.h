@@ -49,6 +49,12 @@ namespace matrix
 	/// @brief Multiplies two matrices.
 	Mat4x4 Multiply(const Mat4x4& lhs, const Mat4x4& rhs);
 
+	/// @brief Calculates the determinant of the specified matrix.
+	float Determinant(const Mat4x4& m);
+
+	/// @brief Calculates the inverse of the specified matrix.
+	Mat4x4 Inverse(const Mat4x4& m);
+
 };
 
 #endif // __FRAMEWORK_MATRIX_H__
