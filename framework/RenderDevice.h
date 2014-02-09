@@ -53,6 +53,11 @@ public:
 	/// @param name Name of the uniform variable.
 	/// @param value Specifies the new value.
 	void SetUniform3f(const char* name, const Vec3& value);
+	
+	/// @brief Specifies the value of a uniform variable.
+	/// @param name Name of the uniform variable.
+	/// @param value Specifies the new value.
+	void SetUniform1f(const char* name, float value);
 
 	/// @brief Specifies the value of a uniform variable.
 	/// @param name Name of the uniform variable.
