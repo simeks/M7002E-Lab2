@@ -36,7 +36,7 @@ struct Light : public Entity
 	Color diffuse;
 	Color specular;
 
-	float radius;
+	float radius; // Light radius
 };
 
 

@@ -4,17 +4,21 @@
 #include <stack>
 
 class RenderDevice;
+
+/// Matrix stack used in a similar manner to the (now deprecated) opengl transformation stack.
 class MatrixStack
 {
 public:
 	MatrixStack();
 	~MatrixStack();
 
-	/// Pushes 
 	void Push();
 	void Pop();
 	
+	/// @brief Sets a new view matrix to the top of the stack.
 	void SetViewMatrix(const Mat4x4& view_matrix);
+
+	/// @brief Sets a new projection matrix to the top of the stack.
 	void SetProjectionMatrix(const Mat4x4& projection_matrix);
 
 	void Translate3f(const Vec3& translation);

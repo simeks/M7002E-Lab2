@@ -3,6 +3,7 @@
 
 namespace vertex_format
 {
+	/// Describes the format of a vertex in a vertex buffer.
 	enum VertexFormat
 	{
 		VF_POSITION3F, // Each vertex holds only a position: x, y, z
@@ -10,6 +11,7 @@ namespace vertex_format
 	};
 };
 
+/// Contains all the information needed to perform a draw call.
 struct DrawCall
 {
 	GLenum draw_mode; // Specifies draw mode, e.g. GL_POINTS, GL_TRIANGLES, etc.

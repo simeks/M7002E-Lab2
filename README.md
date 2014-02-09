@@ -26,10 +26,10 @@ Creating shapes:
 - [4] : Creates a point-light at the current mouse location.
 
 Manipulating shapes:
-- Left click on an object to select it.
-- [Left mouse] : Moves an object around on the x- and the z-axis.
+- [Left mouse] : Select an object by clicking on it.
+- [Left mouse] : Move an object around on the x- and the z-axis by dragging it with the mouse.
 - [Left ctrl] + [Left mouse] : Moves an object around on the y-axis.
-- [S] + [Left mouse] : Scale an object on the x-, and the z-axis.
+- [S] + [Left mouse] : Scale an object on the x-, and the z-axis. Scaling a light source will simply scale its radius.
 - [Left ctrl] + [S] + [Left mouse] : Scale an object on the y-axis.
 - [R] + [Left mouse] : Rotate an object.
 - [Delete] : Deletes the selected object.
@@ -39,6 +39,10 @@ Misc:
 - [Escape] : Exits the program.
 - [F1] : Saves the current scene to the file "scene.json".
 - [F2] : Loads a scene from the file "scene.json".
+
+Material/Light properties:
+When selecting either a light source or an object a color picker will popup in the lower right corner. This color picker allows you to set material and light properties.
+The first (top) set of gradients selects the ambient color, the second selects the specular color and the third selects the diffuse color.
 
 Saving:
 The scene is always saved automatically when the user exits program and then automatically loaded when the user starts the program again.
