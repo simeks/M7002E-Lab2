@@ -48,12 +48,15 @@ protected:
 
 	/// @brief Scales the specified entity
 	/// @param y_axis Specifies if the object should be scaled in the y-axis.
-	/// @param offset Offset from the object origin and the mouse position (In world space).
-	void ScaleEntity(Entity* entity, const Vec2& mouse_position, bool y_axis, const Vec3& offset);
+	void ScaleEntity(Entity* entity, const Vec2& mouse_position, bool y_axis);
 	
 	/// @brief Rotates the specified entity
-	/// @param y_axis Specifies if the object should be rotated in the y-axis.
-	void RotateEntity(Entity* entity, const Vec2& mouse_position, bool y_axis);
+	void RotateEntity(Entity* entity, const Vec2& mouse_position);
+
+	/// @brief Called when the user wants to select an entity.
+	void SelectEntity(Entity* entity, const Vec2& mouse_position);
+	/// @brief Called when the user wants to unselect the current entity.
+	void UnselectEntity();
 
 private:
 	struct Selection

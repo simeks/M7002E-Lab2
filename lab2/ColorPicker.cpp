@@ -196,12 +196,12 @@ void ColorPicker::Initialize()
 	_gradient_shader = _device->CreateShader(gradient_vertex_shader_src, gradient_fragment_shader_src);
 	_simple_shader = _device->CreateShader(simple_vertex_shader_src, simple_fragment_shader_src);
 	
-	_gradient_size.x = 300;
-	_gradient_size.y = 90;
+	_gradient_size.x = 250;
+	_gradient_size.y = 75;
 
 	float x = _viewport_size.x - _gradient_size.x - 50;
-	_ambient_gradient.position = Vec2(x, 210);
-	_specular_gradient.position = Vec2(x, 110);
+	_ambient_gradient.position = Vec2(x, 30 + _gradient_size.y * 2);
+	_specular_gradient.position = Vec2(x, 20 + _gradient_size.y);
 	_diffuse_gradient.position = Vec2(x, 10);
 
 }

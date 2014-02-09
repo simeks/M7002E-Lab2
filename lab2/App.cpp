@@ -215,18 +215,7 @@ void Lab2App::OnEvent(SDL_Event* evt)
 			Entity* entity = _scene->SelectEntity(mouse_position, _camera);
 			if(entity)
 			{
-				// Unselect any previous selection first
-				if(_selection.entity)
-				{
-					_selection.entity->selected = false;
-					_selection.entity = NULL;
-				}
-
-				_selection.entity = entity;
-				
-				// Enable the color picker
-				_color_picker->Show();
-				_color_picker->SetTarget(entity);
+				SelectEntity(entity, mouse_position);
 
 				if(key_states[SDL_SCANCODE_S]) // 's' => Scaling
 				{
@@ -240,27 +229,11 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				{
 					_selection.mode = Selection::MOVE;
 				}
-				_selection.entity->selected = true;
 
-				_selection.position = mouse_position;
-
-				Vec3 world_position = _scene->ToWorld(mouse_position, _camera, _selection.entity->position.y);
-				_selection.offset = vector::Subtract(_selection.entity->position, world_position);
 			}
 			else if(_selection.entity)
 			{
-				// Unselect the entity
-
-				// Disable the color picker if it happends to be enabled
-				if(_color_picker->Visible())
-				{
-					_color_picker->Hide();
-					_color_picker->SetTarget(NULL);
-				}
-
-				_selection.mode = Selection::IDLE;
-				_selection.entity->selected = false;
-				_selection.entity = NULL;
+				UnselectEntity();
 			}
 		}
 		break;
@@ -290,11 +263,11 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				}
 				else if(_selection.mode == Selection::SCALE)
 				{
-					ScaleEntity(_selection.entity, mouse_position, (key_states[SDL_SCANCODE_LCTRL] != 0), _selection.offset);
+					ScaleEntity(_selection.entity, mouse_position, (key_states[SDL_SCANCODE_LCTRL] != 0));
 				}
 				else if(_selection.mode == Selection::ROTATE)
 				{
-					RotateEntity(_selection.entity, mouse_position, (key_states[SDL_SCANCODE_LCTRL] != 0));
+					RotateEntity(_selection.entity, mouse_position);
 				}
 				// Check if the user tries to drag the color sliders
 				else if(_color_picker->Visible() && evt->motion.state & SDL_BUTTON(1))
@@ -422,10 +395,8 @@ void Lab2App::MoveEntity(Entity* entity, const Vec2& mouse_position, bool y_axis
 	}
 }
 
-void Lab2App::ScaleEntity(Entity* entity, const Vec2& mouse_position, bool y_axis, const Vec3& offset)
+void Lab2App::ScaleEntity(Entity* entity, const Vec2& mouse_position, bool y_axis)
 {
-	float offset_len = vector::Length(offset);
-
 	if(entity->type == Entity::ET_LIGHT)
 	{	
 		Vec3 world_position = _scene->ToWorld(mouse_position, _camera, entity->position.y);
@@ -471,7 +442,7 @@ void Lab2App::ScaleEntity(Entity* entity, const Vec2& mouse_position, bool y_axi
 			Vec3 intersection = RayPlaneIntersect(_camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), plane_normal, -vector::Dot(entity->position, plane_normal)); 
 			Vec3 d = vector::Subtract(entity->position, intersection);
 
-			entity->scale.y = fabs(d.y) / offset_len;
+			entity->scale.y = fabs(d.y);
 		}
 		else
 		{
@@ -481,12 +452,12 @@ void Lab2App::ScaleEntity(Entity* entity, const Vec2& mouse_position, bool y_axi
 			Vec3 world_position = _scene->ToWorld(mouse_position, _camera, entity->position.y);
 			Vec3 d = vector::Subtract(entity->position, world_position);
 
-			entity->scale = Vec3(fabs(d.x) / offset_len, entity->scale.y, fabs(d.z) / offset_len);
+			entity->scale = Vec3(fabs(d.x), entity->scale.y, fabs(d.z));
 		}
 	}
 }
 
-void Lab2App::RotateEntity(Entity* entity, const Vec2& mouse_position, bool )
+void Lab2App::RotateEntity(Entity* entity, const Vec2& mouse_position)
 {
 	// Move the y_axis (and any axis that is the cross product of the y_axis and the camera direction)
 	//	We do this by casting a ray from the mouse position against a plane that is fixed on the y-axis.
@@ -514,4 +485,38 @@ void Lab2App::RotateEntity(Entity* entity, const Vec2& mouse_position, bool )
 	Vec3 delta = vector::Subtract(world_position, _selection.entity->position);
 	_selection.entity->rotation.x = delta.x;
 	_selection.entity->rotation.y = delta.z;
+}
+
+void Lab2App::SelectEntity(Entity* entity, const Vec2& mouse_position)
+{
+	// Unselect any previous selection first
+	if(_selection.entity)
+	{
+		UnselectEntity();
+	}
+
+	_selection.entity = entity;
+	_selection.entity->selected = true;
+	_selection.position = mouse_position;
+				
+	// Enable the color picker
+	_color_picker->Show();
+	_color_picker->SetTarget(entity);
+
+	// Calculate the offset between the object origin and the mouse position, this is used later to avoid snapping.
+	Vec3 world_position = _scene->ToWorld(mouse_position, _camera, _selection.entity->position.y);
+	_selection.offset = vector::Subtract(_selection.entity->position, world_position);
+}
+void Lab2App::UnselectEntity()
+{
+	// Disable the color picker if it happends to be enabled
+	if(_color_picker->Visible())
+	{
+		_color_picker->Hide();
+		_color_picker->SetTarget(NULL);
+	}
+
+	_selection.mode = Selection::IDLE;
+	_selection.entity->selected = false;
+	_selection.entity = NULL;
 }
