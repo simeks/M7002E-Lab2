@@ -34,6 +34,7 @@ Program {
 			".",
 			"dependencies/SDL2-2.0.1/include",
 			"dependencies/glew/include",
+			{ "/Library/Frameworks/SDL2.framework/Headers"; Config = "macosx-*-*" }
 		}, 
 		LIBPATH = {
 			{

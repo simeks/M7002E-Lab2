@@ -223,6 +223,7 @@ void RenderDevice::Draw(const DrawCall& draw_call)
 									(void*)(sizeof(float)*3)
 								); 
 			glEnableVertexAttribArray(1);
+			
 		}
 		break;
 	};
@@ -349,17 +350,18 @@ int RenderDevice::CreateShader(const char* vertex_shader_src, const char* fragme
 		glGetShaderiv(shader.fragment_shader, GL_COMPILE_STATUS, &param);
 		if(param != GL_TRUE)
 		{
-			debug::Printf("RenderDevice: Failed to compile pixel shader %u.\n", shader.fragment_shader);
+			debug::Printf("RenderDevice: Failed to compile fragment shader %u.\n", shader.fragment_shader);
 			PrintShaderInfoLog(shader.fragment_shader);
 			return -1;
 		}
 
-		// Attach the vertex shader to the shader program
+		// Attach the fragment shader to the shader program
 		glAttachShader(shader.program, shader.fragment_shader);
 	}
 
 	// Link shaders
 	glLinkProgram(shader.program);
+	glValidateProgram(shader.program);
 	
 	// Check if linking was sucessful
 	int param = -1;

@@ -22,6 +22,8 @@ THE SOFTWARE.
 #ifndef __JSON_H__
 #define __JSON_H__
 
+#include <string>
+
 class ConfigValue;
 
 namespace json

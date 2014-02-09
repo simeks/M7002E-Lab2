@@ -71,7 +71,7 @@ Entity* Scene::SelectEntity(const Vec2& mouse_position, const Camera& camera)
 	for(std::vector<Entity*>::iterator it = _entities.begin(); 
 		it != _entities.end(); ++it)
 	{
-		float radius = max(max((*it)->scale.x, (*it)->scale.y), (*it)->scale.z) * (*it)->primitive.bounding_radius; // Scale bounding radius
+		float radius = std::max(std::max((*it)->scale.x, (*it)->scale.y), (*it)->scale.z) * (*it)->primitive.bounding_radius; // Scale bounding radius
 		if(RaySphereIntersect(camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), (*it)->position, radius))
 		{
 			return (*it);
@@ -285,7 +285,7 @@ void Scene::RenderEntity(RenderDevice& device, MatrixStack& matrix_stack, Entity
 	{
 		// Bind shader and set material parameters
 		device.BindShader(entity->material.shader);
-			
+		
 		BindLightUniforms(device);
 		BindMaterialUniforms(device, entity);
 		

@@ -26,6 +26,7 @@ THE SOFTWARE.
 #include <vector>
 #include <map>
 #include <sstream>
+#include <string>
 
 
 class ConfigValueIterator;

@@ -9,29 +9,30 @@
 #define SCENE_FILE_NAME "scene.json"
 
 static const char* vertex_shader_src = " \
+	#version 150 \n\
 	uniform mat4 model_view_projection_matrix; \
 	uniform mat4 model_view_matrix; \
 	\
-	attribute vec3 vertex_position; \
-	attribute vec3 vertex_normal; \
+	in vec3 vertex_position; \
+	in vec3 vertex_normal; \
 	\
-	varying vec3 normal_view; /* Normal in view-space */ \
-	varying vec3 position_view; /* Vertex position in view-space */ \
+	vec3 normal_view; /* Normal in view-space */ \
+	vec3 position_view; /* Vertex position in view-space */ \
 	\
 	void main() \
 	{ \
 		gl_Position = model_view_projection_matrix * vec4(vertex_position, 1.0); \
 		\
 		/* Transform normals into view-space */ \
-		normal_view = transpose(inverse(model_view_matrix)) * vec4(normalize(vertex_normal), 0.0); \
-		normal_view = normalize(normal_view); \
-		position_view = model_view_matrix * vec4(vertex_position, 1.0); \
+		normal_view = normalize(transpose(inverse(model_view_matrix)) * vec4(normalize(vertex_normal), 0.0)).xyz; \
+		position_view = (model_view_matrix * vec4(vertex_position, 1.0)).xyz; \
 	}";
 
 static const char* fragment_shader_src = " \
+	#version 150 \n\
 	#define MAX_LIGHT_COUNT 16 \n\
-	varying vec3 normal_view; /* Normal in view-space */ \
-	varying vec3 position_view; /* Vertex position in view space */ \
+	vec3 normal_view; /* Normal in view-space */ \
+	vec3 position_view; /* Vertex position in view space */ \
 	uniform mat4 model_view_matrix; \
 	uniform mat4 view_matrix; \
 	\
@@ -55,6 +56,8 @@ static const char* fragment_shader_src = " \
 		vec4 specular;\
 		\
 	} material; \
+	\
+	out vec4 frag_color; \
 	\
 	void main() \
 	{ \
@@ -86,11 +89,11 @@ static const char* fragment_shader_src = " \
 			light_accumulation += att * ((diffuse_term + specular_term * pow(cosTh, specular_power)) * cosTi + ambient_term);  \
 		} \
 		\
-		gl_FragColor = light_accumulation;  \
+		frag_color = light_accumulation; \
 	}";
 
 
-Lab2App::Lab2App() : _primitive_factory(NULL), _color_picker(NULL), _camera_angle(0.0f)
+Lab2App::Lab2App() : _camera_angle(0.0f), _primitive_factory(NULL), _color_picker(NULL)
 {
 }
 Lab2App::~Lab2App()
@@ -194,6 +197,8 @@ void Lab2App::Render(float )
 
 	// Render UI
 	_color_picker->Render();
+
+	Stop();
 }
 
 void Lab2App::OnEvent(SDL_Event* evt)
@@ -353,6 +358,8 @@ void Lab2App::OnEvent(SDL_Event* evt)
 					}
 				}
 				break;
+			default:
+				break;
 			};
 		}
 		break;
@@ -460,28 +467,6 @@ void Lab2App::ScaleEntity(Entity* entity, const Vec2& mouse_position, bool y_axi
 
 void Lab2App::RotateEntity(Entity* entity, const Vec2& mouse_position)
 {
-	// Move the y_axis (and any axis that is the cross product of the y_axis and the camera direction)
-	//	We do this by casting a ray from the mouse position against a plane that is fixed on the y-axis.
-	//	The intersection point will then be the new position for the object.
-
-	Vec4 ray_clip = Vec4(mouse_position.x, mouse_position.y, -1.0f, 1.0f); 
-
-	// Transform ray into view-space
-	Vec4 ray_view = matrix::Multiply(matrix::Inverse(_camera.projection_matrix), ray_clip);
-	ray_view = Vec4(ray_view.x, ray_view.y, -1.0f, 0.0f);
-
-	// Transform ray into world-space
-	Mat4x4 view = matrix::LookAt(_camera.position, vector::Add(_camera.position, _camera.direction), Vec3(0.0f, 1.0f, 0.0f)); // Build the view matrix
-	Vec4 ray_world = matrix::Multiply(matrix::Inverse(view), ray_view);
-	vector::Normalize(ray_world);
-
-	Vec3 plane_normal = vector::Subtract(Vec3(0, 0, 0), _camera.direction);
-	plane_normal.y = 0.0f; // Fix the plane on the y-axis
-
-	// We add an offset to the plane to make sure we're actually moving the object relative to it's previous position and not relative to (0, 0, 0).
-	Vec3 intersection = RayPlaneIntersect(_camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), plane_normal, -vector::Dot(entity->position, plane_normal)); 
-	Vec3 d = vector::Subtract(entity->position, intersection);
-
 	Vec3 world_position = _scene->ToWorld(mouse_position, _camera, _selection.entity->position.y);
 	Vec3 delta = vector::Subtract(world_position, _selection.entity->position);
 	_selection.entity->rotation.x = delta.x;

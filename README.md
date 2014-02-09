@@ -39,6 +39,7 @@ Misc:
 - [Escape] : Exits the program.
 - [F1] : Saves the current scene to the file "scene.json".
 - [F2] : Loads a scene from the file "scene.json".
+- [V] : Holding [V] while moving the mouse allows you to move the camera.
 
 Material/Light properties:
 

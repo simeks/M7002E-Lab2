@@ -5,9 +5,10 @@
 #include "App.h"
 
 static const char* gradient_vertex_shader_src = " \
-	varying float x;\
+	#version 150 \n\
+	float x;\
 	\
-	attribute vec3 vertex_position; \
+	in vec3 vertex_position; \
 	\
 	uniform vec3 offset; \
 	uniform vec3 scale; \
@@ -19,19 +20,23 @@ static const char* gradient_vertex_shader_src = " \
 	}";
 
 static const char* gradient_fragment_shader_src = " \
-	varying float x; \
+	#version 150 \n\
+	float x; \
 	uniform float current_x; \
 	uniform vec4 color; \
+	\
+	out vec4 frag_color; \
 	void main() \
 	{ \
-		if(abs(x - current_x) > 0.005 )\
-			gl_FragColor = max(color * x, 0);  \
+		if(abs(x - current_x) > 0.005)\
+			frag_color = max(color * x, 0);  \
 		else \
-			gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); \
+			frag_color = vec4(1.0, 1.0, 1.0, 1.0); \
 	}";
 
 static const char* simple_vertex_shader_src = " \
-	attribute vec3 vertex_position; \
+	#version 150 \n\
+	in vec3 vertex_position; \
 	\
 	uniform vec3 offset; \
 	uniform vec3 scale; \
@@ -42,10 +47,13 @@ static const char* simple_vertex_shader_src = " \
 	}";
 
 static const char* simple_fragment_shader_src = " \
+	#version 150 \n\
 	uniform vec4 color; \
+	\
+	out vec4 frag_color; \
 	void main() \
 	{ \
-		gl_FragColor = color;  \
+		frag_color = color;  \
 	}";
 
 
