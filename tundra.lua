@@ -8,6 +8,7 @@ local win32_config = {
 			"/D_MBCS",
 			"/wd4512", -- C4512: assignment operator could not be generated.
 			"/wd28251", -- C28251: Inconsistent annotation for '*': this instance has no annotations.
+			"/wd4127", -- C4127: conditional expression is constant.
 			{ 
 				--"/analyze",
 				"/MDd", 

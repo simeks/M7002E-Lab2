@@ -10,8 +10,10 @@ struct Entity
 	{
 		ET_PYRAMID,
 		ET_CUBE,
-		ET_SPHERE
+		ET_SPHERE,
+		ET_LIGHT
 	};
+	EntityType type;
 
 	Primitive primitive;
 	Material material;
@@ -25,13 +27,14 @@ struct Entity
 	Entity() : rotation(0.0f, 0.0f, 0.0f), position(0.0f, 0.0f, 0.0f), scale(1.0f, 1.0f, 1.0f) {}
 };
 
-struct Light
+/// Point-light
+struct Light : public Entity
 {
 	Color ambient;
 	Color diffuse;
 	Color specular;
 
-	Vec3 direction;
+	float radius;
 };
 
 
@@ -42,6 +45,8 @@ class MatrixStack;
 class Scene
 {
 public:
+	enum { MAX_LIGHT_COUNT = 16 };
+
 	/// @param material Material template that will be used by all new entities.
 	Scene(const Material& material, PrimitiveFactory* factory);
 	~Scene();
@@ -64,9 +69,12 @@ public:
 
 	/// @brief Renders the scene with the specified device.
 	void Render(RenderDevice& device, MatrixStack& matrix_stack);
-
-	/// @brief Returns the active light for this scene.
-	Light& GetLight();
+	
+	/// Loads the scene from a file.
+	/// @return True if a scene was loaded, false if not.
+	bool LoadScene(const char* filename);
+	/// Saves the scene to a file.
+	void SaveScene(const char* filename);
 
 private:
 	/// Binds material specific shader uniforms.
@@ -76,14 +84,14 @@ private:
 
 	void RenderEntity(RenderDevice& device, MatrixStack& matrix_stack, Entity* entity); 
 
-
 	std::vector<Entity*> _entities;
 	Entity* _floor_entity;
+
+	std::vector<Light*> _lights;
 
 	PrimitiveFactory* _primitive_factory;
 	Material _material_template; // Template material which will be used for all new entities.
 
-	Light _active_light;
 };
 
 

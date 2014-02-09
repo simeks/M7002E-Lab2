@@ -6,18 +6,17 @@
 
 #include <framework/RenderDevice.h>
 #include <framework/Ray.h>
+#include <framework/Json.h>
+#include <framework/ConfigValue.h>
 
 #include <algorithm>
+#include <sstream>
+#include <fstream>
 
 Scene::Scene(const Material& material, PrimitiveFactory* factory) 
 	: _primitive_factory(factory),
 	_material_template(material)
 {
-	_active_light.ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
-	_active_light.diffuse = Color(1.0f, 1.0f, 1.0f, 1.0f);
-	_active_light.specular = Color(0.0f, 0.0f, 0.0f, 1.0f);
-	_active_light.direction = Vec3(0.0f, 1.0f, 0.0f);
-
 	// Create a floor
 	_floor_entity = new Entity;
 	_floor_entity->primitive = _primitive_factory->CreatePlane(Vec2(25.0f, 25.0f));
@@ -100,7 +99,17 @@ Vec3 Scene::ToWorld(const Vec2& mouse_position, const Camera& camera)
 
 Entity* Scene::CreateEntity(Entity::EntityType type)
 {
-	Entity* entity = new Entity;
+	Entity* entity = NULL;
+	if(type == Entity::ET_LIGHT)
+	{
+		assert(_lights.size() < MAX_LIGHT_COUNT);
+		entity = new Light;
+	}
+	else
+	{
+		entity = new Entity;
+	}
+	entity->type = type;
 
 	switch(type)
 	{
@@ -119,6 +128,11 @@ Entity* Scene::CreateEntity(Entity::EntityType type)
 			entity->primitive = _primitive_factory->CreateSphere(0.5f);
 		}
 		break;
+	case Entity::ET_LIGHT:
+		{
+			entity->primitive = _primitive_factory->CreateSphere(0.25f);
+		}
+		break;
 	default:
 		assert(false);
 	};
@@ -130,17 +144,41 @@ Entity* Scene::CreateEntity(Entity::EntityType type)
 
 	_entities.push_back(entity);
 
-	// Randomize colors for the new object
-	entity->material.diffuse.r = (rand() % 255) / 255.0f;
-	entity->material.diffuse.g = (rand() % 255) / 255.0f;
-	entity->material.diffuse.b = (rand() % 255) / 255.0f;
+	if(type == Entity::ET_LIGHT)
+	{
+		// Light nodes are all white
+		entity->material.ambient = Color(1.0f, 1.0f, 1.0f, 1.0f);
+		entity->material.diffuse = Color(1.0f, 1.0f, 1.0f, 1.0f);
+		
+		Light* light = (Light*)entity;
+		light->ambient = Color(0.0f, 0.0f, 0.0f);
+		light->diffuse = Color(1.0f, 1.0f, 1.0f);
+		light->specular = Color(0.25f, 0.25f, 0.25f);
+		light->radius = 2.5f;
 
-	entity->material.specular = entity->material.diffuse;
+		_lights.push_back(light);
+	}
+	else
+	{
+		// Randomize colors for the new object
+		entity->material.diffuse.r = (rand() % 255) / 255.0f;
+		entity->material.diffuse.g = (rand() % 255) / 255.0f;
+		entity->material.diffuse.b = (rand() % 255) / 255.0f;
+
+		entity->material.specular = entity->material.diffuse;
+	}
 
 	return entity;
 }
 void Scene::DestroyEntity(Entity* entity)
 {
+	if(entity->type == Entity::ET_LIGHT)
+	{
+		std::vector<Light*>::iterator it = std::find(_lights.begin(), _lights.end(), entity);
+		if(it != _lights.end())
+			_lights.erase(it);
+	}
+
 	std::vector<Entity*>::iterator it = std::find(_entities.begin(), _entities.end(), entity);
 	if(it != _entities.end())
 	{
@@ -152,6 +190,8 @@ void Scene::DestroyEntity(Entity* entity)
 
 void Scene::DestroyAllEntities()
 {
+	_lights.clear();
+
 	for(std::vector<Entity*>::iterator it = _entities.begin(); 
 		it != _entities.end(); ++it)
 	{
@@ -173,22 +213,53 @@ void Scene::Render(RenderDevice& device, MatrixStack& matrix_stack)
 	}
 
 }
-Light& Scene::GetLight()
-{
-	return _active_light;
-}
+
 void Scene::BindMaterialUniforms(RenderDevice& device, const Material& material)
 {
-	device.SetUniform3f("material_ambient",  Vec3(material.ambient.r, material.ambient.g, material.ambient.b));
-	device.SetUniform3f("material_diffuse",  Vec3(material.diffuse.r, material.diffuse.g, material.diffuse.b));
-	device.SetUniform3f("material_specular",  Vec3(material.specular.r, material.specular.g, material.specular.b));
+	device.SetUniform4f("material.ambient",  Vec4(material.ambient.r, material.ambient.g, material.ambient.b, material.ambient.a));
+	device.SetUniform4f("material.diffuse",  Vec4(material.diffuse.r, material.diffuse.g, material.diffuse.b, material.diffuse.a));
+	device.SetUniform4f("material.specular",  Vec4(material.specular.r, material.specular.g, material.specular.b, material.specular.a));
 }
 void Scene::BindLightUniforms(RenderDevice& device)
 {
-	device.SetUniform3f("light_direction", _active_light.direction);
-	device.SetUniform3f("light_ambient",  Vec3(_active_light.ambient.r, _active_light.ambient.g, _active_light.ambient.b));
-	device.SetUniform3f("light_diffuse",  Vec3(_active_light.diffuse.r, _active_light.diffuse.g, _active_light.diffuse.b));
-	device.SetUniform3f("light_specular",  Vec3(_active_light.specular.r, _active_light.specular.g, _active_light.specular.b));
+	// OpenGL seems to have a weird way working with uniforms (arrays of structures) so we cannot set all our data at once, 
+	//	we need to set each variable separately.
+	for(uint32_t i = 0; i < MAX_LIGHT_COUNT; ++i)
+	{
+		if(_lights.size() > i)
+		{
+			Light* l = _lights[i];
+
+			std::stringstream ss;
+			ss << "lights[" << i << "].ambient";
+			device.SetUniform4f(ss.str().c_str(), Vec4(l->ambient.r, l->ambient.g, l->ambient.b, l->ambient.a));
+			
+			ss.str("");
+			ss << "lights[" << i << "].diffuse";
+			device.SetUniform4f(ss.str().c_str(), Vec4(l->diffuse.r, l->diffuse.g, l->diffuse.b, l->diffuse.a));
+			
+			ss.str("");
+			ss << "lights[" << i << "].specular";
+			device.SetUniform4f(ss.str().c_str(), Vec4(l->specular.r, l->specular.g, l->specular.b, l->specular.a));
+
+			ss.str("");
+			ss << "lights[" << i << "].position";
+			device.SetUniform3f(ss.str().c_str(), l->position);
+			
+			ss.str("");
+			ss << "lights[" << i << "].radius";
+			device.SetUniform1f(ss.str().c_str(), l->radius);
+		}
+		else
+		{
+			// Just set the radius to 0 for any "non-existing" lights in the array.
+			std::stringstream ss;
+			ss << "lights[" << i << "].radius";
+			device.SetUniform1f(ss.str().c_str(), 0.0f);
+
+		}
+
+	}
 }
 void Scene::RenderEntity(RenderDevice& device, MatrixStack& matrix_stack, Entity* entity)
 {
@@ -216,4 +287,204 @@ void Scene::RenderEntity(RenderDevice& device, MatrixStack& matrix_stack, Entity
 
 		matrix_stack.Pop();
 	}
+}
+bool Scene::LoadScene(const char* filename)
+{
+	std::ifstream ifs;
+	ifs.open(filename, std::ifstream::in);
+
+	if(ifs.is_open())
+	{
+		// Read complete file into memory
+		ifs.seekg(0, ifs.end);
+		int length = (int)ifs.tellg();
+		ifs.seekg(0, ifs.beg);
+
+		std::string buffer;
+		buffer.resize(length);
+		ifs.read(&buffer[0], length);
+		ifs.close();
+
+		ConfigValue scene;
+
+		// Read scene from json
+		json::Reader reader;
+		reader.Read(buffer.c_str(), length, scene);
+
+		// Parse scene
+		ConfigValue& entities = scene["entities"];
+		if(entities.IsArray())
+		{
+			for(uint32_t i = 0; i < entities.Size(); ++i)
+			{
+				ConfigValue& entity_node = entities[i];
+				Entity::EntityType type = (Entity::EntityType)entity_node["type"].AsInt();
+
+				Entity* entity = CreateEntity(type);
+
+				// Transform
+				
+				entity->rotation.x = entity_node["rotation"][0].AsFloat();
+				entity->rotation.y = entity_node["rotation"][1].AsFloat();
+				entity->rotation.z = entity_node["rotation"][2].AsFloat();
+		
+				entity->position.x = entity_node["position"][0].AsFloat();
+				entity->position.y = entity_node["position"][1].AsFloat();
+				entity->position.z = entity_node["position"][2].AsFloat();
+		
+				entity->scale.x = entity_node["scale"][0].AsFloat();
+				entity->scale.y = entity_node["scale"][1].AsFloat();
+				entity->scale.z = entity_node["scale"][2].AsFloat();
+
+				// Material
+				entity->material = _material_template;
+
+				ConfigValue& material = entity_node["material"];
+				if(material.IsObject())
+				{
+					entity->material.ambient.r = material["ambient"][0].AsFloat();
+					entity->material.ambient.g = material["ambient"][1].AsFloat();
+					entity->material.ambient.b = material["ambient"][2].AsFloat();
+					entity->material.ambient.a = material["ambient"][3].AsFloat();
+		
+					entity->material.specular.r = material["specular"][0].AsFloat();
+					entity->material.specular.g = material["specular"][1].AsFloat();
+					entity->material.specular.b = material["specular"][2].AsFloat();
+					entity->material.specular.a = material["specular"][3].AsFloat();
+					
+					entity->material.diffuse.r = material["diffuse"][0].AsFloat();
+					entity->material.diffuse.g = material["diffuse"][1].AsFloat();
+					entity->material.diffuse.b = material["diffuse"][2].AsFloat();
+					entity->material.diffuse.a = material["diffuse"][3].AsFloat();
+				}
+
+				if(type == Entity::ET_LIGHT)
+				{
+					Light* light = (Light*)entity;
+
+					// Light paramters
+					ConfigValue& light_node = entity_node["light"];
+					if(light_node.IsObject())
+					{
+						light->ambient.r = light_node["ambient"][0].AsFloat();
+						light->ambient.g = light_node["ambient"][1].AsFloat();
+						light->ambient.b = light_node["ambient"][2].AsFloat();
+						light->ambient.a = light_node["ambient"][3].AsFloat();
+		
+						light->specular.r = light_node["specular"][0].AsFloat();
+						light->specular.g = light_node["specular"][1].AsFloat();
+						light->specular.b = light_node["specular"][2].AsFloat();
+						light->specular.a = light_node["specular"][3].AsFloat();
+					
+						light->diffuse.r = light_node["diffuse"][0].AsFloat();
+						light->diffuse.g = light_node["diffuse"][1].AsFloat();
+						light->diffuse.b = light_node["diffuse"][2].AsFloat();
+						light->diffuse.a = light_node["diffuse"][3].AsFloat();
+					
+						light->radius = light_node["radius"].AsFloat();
+					}
+
+				}
+				
+			}
+		}
+
+		return true;
+	}
+	else
+	{
+		debug::Printf("Scene: No file with the name '%s' found.\n", filename);
+		return false;
+	}
+}
+void Scene::SaveScene(const char* filename)
+{
+	ConfigValue scene;
+	scene.SetEmptyObject();
+
+	ConfigValue& entities = scene["entities"];
+	entities.SetEmptyArray();
+
+	// Fill a ConfigValue with a representation of our scene
+	for(std::vector<Entity*>::iterator it = _entities.begin(); 
+		it != _entities.end(); ++it)
+	{
+		ConfigValue& entity = entities.Append();
+		entity.SetEmptyObject();
+		entity["type"].SetInt((*it)->type);
+
+		entity["rotation"].SetEmptyArray();
+		entity["rotation"].Append().SetFloat((*it)->rotation.x);
+		entity["rotation"].Append().SetFloat((*it)->rotation.y);
+		entity["rotation"].Append().SetFloat((*it)->rotation.z);
+		
+		entity["position"].SetEmptyArray();
+		entity["position"].Append().SetFloat((*it)->position.x);
+		entity["position"].Append().SetFloat((*it)->position.y);
+		entity["position"].Append().SetFloat((*it)->position.z);
+		
+		entity["scale"].SetEmptyArray();
+		entity["scale"].Append().SetFloat((*it)->scale.x);
+		entity["scale"].Append().SetFloat((*it)->scale.y);
+		entity["scale"].Append().SetFloat((*it)->scale.z);
+
+		entity["material"].SetEmptyObject();
+		entity["material"]["ambient"].SetEmptyArray();
+		entity["material"]["ambient"].Append().SetFloat((*it)->material.ambient.r);
+		entity["material"]["ambient"].Append().SetFloat((*it)->material.ambient.g);
+		entity["material"]["ambient"].Append().SetFloat((*it)->material.ambient.b);
+		entity["material"]["ambient"].Append().SetFloat((*it)->material.ambient.a);
+		
+		entity["material"]["specular"].SetEmptyArray();
+		entity["material"]["specular"].Append().SetFloat((*it)->material.specular.r);
+		entity["material"]["specular"].Append().SetFloat((*it)->material.specular.g);
+		entity["material"]["specular"].Append().SetFloat((*it)->material.specular.b);
+		entity["material"]["specular"].Append().SetFloat((*it)->material.specular.a);
+
+		entity["material"]["diffuse"].SetEmptyArray();
+		entity["material"]["diffuse"].Append().SetFloat((*it)->material.diffuse.r);
+		entity["material"]["diffuse"].Append().SetFloat((*it)->material.diffuse.g);
+		entity["material"]["diffuse"].Append().SetFloat((*it)->material.diffuse.b);
+		entity["material"]["diffuse"].Append().SetFloat((*it)->material.diffuse.a);
+
+		if((*it)->type == Entity::ET_LIGHT)
+		{
+			Light* light = (Light*)(*it);
+
+			// Additional light parameters
+			entity["light"].SetEmptyObject();
+			entity["light"]["ambient"].SetEmptyArray();
+			entity["light"]["ambient"].Append().SetFloat(light->ambient.r);
+			entity["light"]["ambient"].Append().SetFloat(light->ambient.g);
+			entity["light"]["ambient"].Append().SetFloat(light->ambient.b);
+			entity["light"]["ambient"].Append().SetFloat(light->ambient.a);
+		
+			entity["light"]["specular"].SetEmptyArray();
+			entity["light"]["specular"].Append().SetFloat(light->specular.r);
+			entity["light"]["specular"].Append().SetFloat(light->specular.g);
+			entity["light"]["specular"].Append().SetFloat(light->specular.b);
+			entity["light"]["specular"].Append().SetFloat(light->specular.a);
+
+			entity["light"]["diffuse"].SetEmptyArray();
+			entity["light"]["diffuse"].Append().SetFloat(light->diffuse.r);
+			entity["light"]["diffuse"].Append().SetFloat(light->diffuse.g);
+			entity["light"]["diffuse"].Append().SetFloat(light->diffuse.b);
+			entity["light"]["diffuse"].Append().SetFloat(light->diffuse.a);
+
+			entity["light"]["radius"].SetFloat(light->radius);
+
+		}
+	}
+
+	std::stringstream ss;
+
+	// Convert to JSON
+	json::Writer writer;
+	writer.Write(scene, ss, true);
+
+	// Write to file
+	std::ofstream ofs;
+	ofs.open(filename, std::ofstream::out);
+	ofs << ss.str();
+	ofs.close();
 }

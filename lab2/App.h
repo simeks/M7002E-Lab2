@@ -4,6 +4,7 @@
 #include <framework/App.h>
 
 #include "MatrixStack.h"
+#include "Material.h"
 
 struct Viewport
 {
@@ -54,6 +55,8 @@ private:
 
 		Vec3 position;
 		Vec3 offset; // Offset from entity center to mouse position
+
+		Color previous_color; // Color of the entity before selection
 
 		Selection() : entity(NULL), mode(IDLE) {}
 	};

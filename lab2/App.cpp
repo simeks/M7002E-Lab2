@@ -4,6 +4,7 @@
 
 #include <framework/RenderDevice.h>
 
+#define SCENE_FILE_NAME "scene.json"
 
 static const char* vertex_shader_src = " \
 	uniform mat4 model_view_projection_matrix; \
@@ -26,40 +27,64 @@ static const char* vertex_shader_src = " \
 	}";
 
 static const char* fragment_shader_src = " \
+	#define MAX_LIGHT_COUNT 16 \n\
 	varying vec3 normal_view; /* Normal in view-space */ \
 	varying vec3 position_view; /* Vertex position in view space */ \
 	uniform mat4 model_view_matrix; \
 	uniform mat4 view_matrix; \
 	\
 	/* Light uniforms */ \
-	uniform vec3 light_direction;\
-	uniform vec3 light_ambient;\
-	uniform vec3 light_diffuse;\
-	uniform vec3 light_specular;\
+	struct Light \
+	{ \
+		vec4 ambient; \
+		vec4 diffuse; \
+		vec4 specular; \
+		vec3 position; \
+		float radius; \
+	}; \
+	\
+	uniform Light lights[MAX_LIGHT_COUNT]; \
 	\
 	/* Material uniforms */ \
-	uniform vec3 material_ambient;\
-	uniform vec3 material_diffuse;\
-	uniform vec3 material_specular;\
-	\
+	uniform struct \
+	{ \
+		vec4 ambient;\
+		vec4 diffuse;\
+		vec4 specular;\
+		\
+	} material; \
 	\
 	void main() \
 	{ \
 		float specular_power = 16.0; \
-		/* Transform light direction into eye-space as all light calculations are done in view-space */ \
-		vec3 L = (view_matrix * vec4(light_direction, 0.0)).xyz; \
 		vec3 v = normalize(-position_view); /* Direction to the camera (The camera is at (0,0,0) as we calculate in view-space) */ \
 		\
-		/* Diffuse and specular lighting, Real-Time Rendering, 5.5, page 110 */ \
+		vec4 light_accumulation = material.ambient; \
+		for(int i = 0; i < MAX_LIGHT_COUNT; ++i) \
+		{ \
+			vec4 ambient_term = lights[i].ambient; \
+			vec4 diffuse_term = material.diffuse * lights[i].diffuse; \
+			vec4 specular_term = material.specular * lights[i].specular; \
+			\
+			/* Calculate and transform light direction into eye-space as all light calculations are done in view-space */ \
+			vec3 light_dir = (view_matrix * vec4(lights[i].position, 1.0)).xyz - position_view; \
+			\
+			/* Distance to the light */ \
+			float distance = length(light_dir); \
+			\
+			/* Omni-light attenuation [Real-Time Rendering, 7.4.1, page 218]  */\
+			float att = max(1.0 - (distance / lights[i].radius), 0.0); \
+			\
+			/* Diffuse and specular lighting [Real-Time Rendering, 5.5, page 110] */ \
+			\
+			vec3 h = normalize(v + light_dir); \
+			float cosTh = max(dot(normal_view, h), 0.0); \
+			float cosTi = max(dot(normal_view, light_dir), 0.0); \
+			\
+			light_accumulation += att * ((diffuse_term + specular_term * pow(cosTh, specular_power)) * cosTi + ambient_term);  \
+		} \
 		\
-		vec3 h = normalize(v + L); \
-		float cosTh = max(dot(normal_view, h), 0.0); \
-		float cosTi = max(dot(normal_view, L), 0.0); \
-		\
-		vec3 ambient_term = material_ambient + light_ambient; \
-		vec3 diffuse_term = material_diffuse * light_diffuse; \
-		vec3 specular_term = material_specular * light_specular; \
-		gl_FragColor = vec4((diffuse_term + specular_term * pow(cosTh, specular_power)) * cosTi + ambient_term, 1.0); \
+		gl_FragColor = light_accumulation;  \
 	}";
 
 
@@ -102,20 +127,35 @@ bool Lab2App::Initialize()
 	default_material.shader = _default_shader;
 	default_material.diffuse = Color(0.0f, 0.0f, 1.0f, 1.0f);
 	default_material.specular = Color(0.5f, 0.5f, 0.5f, 1.0f);
+	default_material.ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
 	_scene = new Scene(default_material, _primitive_factory);
 
-	_scene->CreateEntity(Entity::ET_PYRAMID)->position = Vec3(1.0f, 0.0f, 0.5f);
-	_scene->CreateEntity(Entity::ET_CUBE)->position = Vec3(-1.0f, 0.0f, 0.5f);
-	_scene->CreateEntity(Entity::ET_SPHERE)->position = Vec3(0.0f, 0.0f, -0.5f);
+	// Try loading a scene
+	if(!_scene->LoadScene(SCENE_FILE_NAME))
+	{
+		// If no scene was loaded setup a small test scene
+		_scene->CreateEntity(Entity::ET_PYRAMID)->position = Vec3(1.0f, 0.0f, 0.5f);
+		_scene->CreateEntity(Entity::ET_CUBE)->position = Vec3(-1.0f, 0.0f, 0.5f);
+		_scene->CreateEntity(Entity::ET_SPHERE)->position = Vec3(0.0f, 0.0f, -0.5f);
 
-	_scene->GetLight().ambient = Color(0.01f, 0.01f, 0.01f, 1.0f);
-	_scene->GetLight().specular = Color(1.0f, 1.0f, 1.0f, 1.0f);
-	_scene->GetLight().direction = Vec3(0.0f, 1.0f, 0.5f);
+		Light* light = (Light*)_scene->CreateEntity(Entity::ET_LIGHT);
+
+		light->ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
+		light->specular = Color(0.25f, 0.25f, 0.25f, 1.0f);
+		light->diffuse = Color(1.0f, 1.0f, 1.0f, 1.0f);
+		light->position = Vec3(0.0f, 0.0f, 0.0f);
+		light->radius = 15.0f;
+
+		_scene->SaveScene(SCENE_FILE_NAME);
+	}
 
 	return true;
 }
 void Lab2App::Shutdown()
 {
+	// Save scene before shutting down.
+	_scene->SaveScene(SCENE_FILE_NAME);
+
 	_render_device->ReleaseShader(_default_shader);
 	_default_shader = -1;
 
@@ -162,7 +202,7 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				// Unselect any previous selection first
 				if(_selection.entity)
 				{
-					_selection.entity->material.ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
+					_selection.entity->material.ambient = _selection.previous_color;
 					_selection.entity = NULL;
 				}
 
@@ -179,7 +219,9 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				{
 					_selection.mode = Selection::MOVE;
 				}
-				_selection.entity->material.ambient = Color(1.0f, 0.0f, 0.0f, 1.0f);
+				_selection.previous_color = _selection.entity->material.ambient;
+				// Change the color of the entity to mark it as selected.
+				_selection.entity->material.ambient = Color(0.75f, 0.0f, 0.0f, 1.0f); 
 
 				Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
 				_selection.position = world_position;
@@ -188,7 +230,7 @@ void Lab2App::OnEvent(SDL_Event* evt)
 			else if(_selection.entity)
 			{
 				_selection.mode = Selection::IDLE;
-				_selection.entity->material.ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
+					_selection.entity->material.ambient = _selection.previous_color;
 				_selection.entity = NULL;
 			}
 		}
@@ -234,7 +276,17 @@ void Lab2App::OnEvent(SDL_Event* evt)
 					Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
 
 					float distance = vector::Length(vector::Subtract(world_position, _selection.entity->position)) / vector::Length(_selection.offset);
-					_selection.entity->scale = Vec3(distance, distance, distance);
+
+					if(_selection.entity->type == Entity::ET_LIGHT)
+					{
+						// If the scaled entity is a light, scale its light radius rather than the object size
+						Light* light = (Light*)_selection.entity;
+						light->radius = distance;
+					}
+					else
+					{
+						_selection.entity->scale = Vec3(distance, distance, distance);
+					}
 				}
 				else if(_selection.mode == Selection::ROTATE)
 				{
@@ -283,6 +335,12 @@ void Lab2App::OnEvent(SDL_Event* evt)
 			case SDL_SCANCODE_3:
 				{
 					Entity* entity = _scene->CreateEntity(Entity::ET_SPHERE);
+					entity->position = world_position;
+				}
+				break;
+			case SDL_SCANCODE_4:
+				{
+					Entity* entity = _scene->CreateEntity(Entity::ET_LIGHT);
 					entity->position = world_position;
 				}
 				break;
