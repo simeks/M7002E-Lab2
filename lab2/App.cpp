@@ -1,6 +1,7 @@
 #include <framework/Common.h>
 #include "App.h"
 #include "Scene.h"
+#include "ColorPicker.h"
 
 #include <framework/RenderDevice.h>
 
@@ -88,7 +89,7 @@ static const char* fragment_shader_src = " \
 	}";
 
 
-Lab2App::Lab2App() : _primitive_factory(NULL), _camera_angle(0.0f)
+Lab2App::Lab2App() : _primitive_factory(NULL), _color_picker(NULL), _camera_angle(0.0f)
 {
 }
 Lab2App::~Lab2App()
@@ -134,25 +135,30 @@ bool Lab2App::Initialize()
 	if(!_scene->LoadScene(SCENE_FILE_NAME))
 	{
 		// If no scene was loaded setup a small test scene
-		_scene->CreateEntity(Entity::ET_PYRAMID)->position = Vec3(1.0f, 0.0f, 0.5f);
-		_scene->CreateEntity(Entity::ET_CUBE)->position = Vec3(-1.0f, 0.0f, 0.5f);
-		_scene->CreateEntity(Entity::ET_SPHERE)->position = Vec3(0.0f, 0.0f, -0.5f);
+		_scene->CreateEntity(Entity::ET_PYRAMID)->position = Vec3(2.5f, 0.0f, -2.5f);
+		_scene->CreateEntity(Entity::ET_CUBE)->position = Vec3(-2.5f, 0.0f, -2.5f);
+		_scene->CreateEntity(Entity::ET_SPHERE)->position = Vec3(0.0f, 0.0f, -3.0f);
 
 		Light* light = (Light*)_scene->CreateEntity(Entity::ET_LIGHT);
 
 		light->ambient = Color(0.0f, 0.0f, 0.0f, 1.0f);
 		light->specular = Color(0.25f, 0.25f, 0.25f, 1.0f);
 		light->diffuse = Color(1.0f, 1.0f, 1.0f, 1.0f);
-		light->position = Vec3(0.0f, 0.0f, 0.0f);
-		light->radius = 15.0f;
+		light->position = Vec3(0.0f, 0.0f, 2.0f);
+		light->radius = 25.0f;
 
 		_scene->SaveScene(SCENE_FILE_NAME);
 	}
+
+	_color_picker = new ColorPicker(_render_device, _viewport);
 
 	return true;
 }
 void Lab2App::Shutdown()
 {
+	delete _color_picker;
+	_color_picker = NULL;
+
 	// Save scene before shutting down.
 	_scene->SaveScene(SCENE_FILE_NAME);
 
@@ -169,6 +175,8 @@ void Lab2App::Shutdown()
 }
 void Lab2App::Render(float )
 {
+	glViewport(_viewport.x, _viewport.y, _viewport.width, _viewport.height);
+
 	_camera.position = Vec3(35.0f*sinf(_camera_angle), 15.0f, 35.0f*cosf(_camera_angle));
 	_camera.direction = vector::Subtract(Vec3(0.0f, 0.0f, 0.0f), _camera.position);
 	vector::Normalize(_camera.direction);
@@ -182,6 +190,9 @@ void Lab2App::Render(float )
 	_scene->Render(*_render_device, _matrix_stack);
 	
 	_matrix_stack.Pop();
+
+	// Render UI
+	_color_picker->Render();
 }
 
 void Lab2App::OnEvent(SDL_Event* evt)
@@ -192,6 +203,10 @@ void Lab2App::OnEvent(SDL_Event* evt)
 	{
 	case SDL_MOUSEBUTTONDOWN:
 		{
+			// If the color picker is active, let it process mouse input.
+			if(_color_picker->Visible() && _color_picker->OnMouseEvent(Vec2((float)evt->button.x, _viewport.height - (float)evt->button.y)))
+				break;
+
 			// Normalize mouse position ([-1.0, 1.0])
 			Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
 										1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
@@ -202,11 +217,16 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				// Unselect any previous selection first
 				if(_selection.entity)
 				{
-					_selection.entity->material.ambient = _selection.previous_color;
+					_selection.entity->selected = false;
 					_selection.entity = NULL;
 				}
 
 				_selection.entity = entity;
+				
+				// Enable the color picker
+				_color_picker->Show();
+				_color_picker->SetTarget(entity);
+
 				if(key_states[SDL_SCANCODE_S]) // 's' => Scaling
 				{
 					_selection.mode = Selection::SCALE;
@@ -219,9 +239,7 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				{
 					_selection.mode = Selection::MOVE;
 				}
-				_selection.previous_color = _selection.entity->material.ambient;
-				// Change the color of the entity to mark it as selected.
-				_selection.entity->material.ambient = Color(0.75f, 0.0f, 0.0f, 1.0f); 
+				_selection.entity->selected = true;
 
 				Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
 				_selection.position = world_position;
@@ -229,8 +247,17 @@ void Lab2App::OnEvent(SDL_Event* evt)
 			}
 			else if(_selection.entity)
 			{
+				// Unselect the entity
+
+				// Disable the color picker if it happends to be enabled
+				if(_color_picker->Visible())
+				{
+					_color_picker->Hide();
+					_color_picker->SetTarget(NULL);
+				}
+
 				_selection.mode = Selection::IDLE;
-					_selection.entity->material.ambient = _selection.previous_color;
+				_selection.entity->selected = false;
 				_selection.entity = NULL;
 			}
 		}
@@ -245,7 +272,7 @@ void Lab2App::OnEvent(SDL_Event* evt)
 		break;
 	case SDL_MOUSEMOTION:
 		{
-			if(key_states[SDL_SCANCODE_C])
+			if(key_states[SDL_SCANCODE_V])
 			{
 				_camera_angle += evt->motion.xrel * 0.01f;
 			}
@@ -254,8 +281,8 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				if(_selection.mode == Selection::MOVE)
 				{
 					// Normalize mouse position ([-1.0, 1.0])
-					Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
-												1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
+					Vec2 mouse_position = Vec2(	2.0f * (float)evt->motion.x / (float)_viewport.width - 1.0f,
+												1.0f - (2.0f * (float)evt->motion.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
 
 					Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
 					if(key_states[SDL_SCANCODE_LCTRL])
@@ -270,8 +297,8 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				else if(_selection.mode == Selection::SCALE)
 				{
 					// Normalize mouse position ([-1.0, 1.0])
-					Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
-												1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
+					Vec2 mouse_position = Vec2(	2.0f * (float)evt->motion.x / (float)_viewport.width - 1.0f,
+												1.0f - (2.0f * (float)evt->motion.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
 
 					Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
 
@@ -291,14 +318,20 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				else if(_selection.mode == Selection::ROTATE)
 				{
 					// Normalize mouse position ([-1.0, 1.0])
-					Vec2 mouse_position = Vec2(	2.0f * (float)evt->button.x / (float)_viewport.width - 1.0f,
-												1.0f - (2.0f * (float)evt->button.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
+					Vec2 mouse_position = Vec2(	2.0f * (float)evt->motion.x / (float)_viewport.width - 1.0f,
+												1.0f - (2.0f * (float)evt->motion.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
 
 					Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
 					Vec3 delta = vector::Subtract(world_position, _selection.entity->position);
 					_selection.entity->rotation.x = delta.x;
 					_selection.entity->rotation.y = delta.z;
 
+				}
+				// Check if the user tries to drag the color sliders
+				else if(_color_picker->Visible() && evt->motion.state & SDL_BUTTON(1))
+				{
+					// Flip height as SDL goes from top to bottom while the rest of our system goes bottom to top.
+					_color_picker->OnMouseEvent(Vec2((float)evt->motion.x, _viewport.height - (float)evt->motion.y));
 				}
 			}
 		}
@@ -318,6 +351,16 @@ void Lab2App::OnEvent(SDL_Event* evt)
 			case SDL_SCANCODE_ESCAPE:
 				{
 					Stop();
+				}
+				break;
+			case SDL_SCANCODE_F1:
+				{
+					_scene->SaveScene(SCENE_FILE_NAME);
+				}
+				break;
+			case SDL_SCANCODE_F2:
+				{
+					_scene->LoadScene(SCENE_FILE_NAME);
 				}
 				break;
 			case SDL_SCANCODE_1:
@@ -344,6 +387,27 @@ void Lab2App::OnEvent(SDL_Event* evt)
 					entity->position = world_position;
 				}
 				break;
+			case SDL_SCANCODE_C:
+				{
+					//if(!_selection.entity) // We can't enable the color picker without a selected entity.
+					//	break;
+
+					//if(_selection.mode != Selection::COLOR_PICK)
+					//{
+					//	// Enable color picker
+					//	_selection.mode = Selection::COLOR_PICK;
+					//	_color_picker->Show();
+					//	_color_picker->SetTarget(_selection.entity);
+					//}
+					//else
+					//{
+					//	// Disable color picker
+					//	_selection.mode = Selection::IDLE;
+					//	_color_picker->Hide();
+					//	_color_picker->SetTarget(NULL);
+					//}
+				}
+				break;
 			case SDL_SCANCODE_DELETE:
 				{
 					// [Ctrl] + [Delete] => Delete all entities
@@ -357,6 +421,13 @@ void Lab2App::OnEvent(SDL_Event* evt)
 
 						_selection.mode = Selection::IDLE;
 						_selection.entity = NULL;
+
+						// Disable the color picker if it happends to be enabled
+						if(_color_picker->Visible())
+						{
+							_color_picker->Hide();
+							_color_picker->SetTarget(NULL);
+						}
 					}
 				}
 				break;

@@ -21,6 +21,7 @@ struct Camera
 
 class Scene;
 class PrimitiveFactory;
+class ColorPicker;
 struct Entity;
 
 class Lab2App : public App
@@ -56,8 +57,6 @@ private:
 		Vec3 position;
 		Vec3 offset; // Offset from entity center to mouse position
 
-		Color previous_color; // Color of the entity before selection
-
 		Selection() : entity(NULL), mode(IDLE) {}
 	};
 
@@ -66,13 +65,13 @@ private:
 	Camera _camera;
 	float _camera_angle;
 
-
 	PrimitiveFactory* _primitive_factory;
 	Scene* _scene;
 
 	int _default_shader;
 
 	Selection _selection;
+	ColorPicker* _color_picker;
 };
 
 

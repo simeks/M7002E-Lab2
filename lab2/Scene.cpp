@@ -152,9 +152,14 @@ Entity* Scene::CreateEntity(Entity::EntityType type)
 		
 		Light* light = (Light*)entity;
 		light->ambient = Color(0.0f, 0.0f, 0.0f);
-		light->diffuse = Color(1.0f, 1.0f, 1.0f);
+
+		// Randomize colors for the new object
+		light->diffuse.r = (rand() % 255) / 255.0f;
+		light->diffuse.g = (rand() % 255) / 255.0f;
+		light->diffuse.b = (rand() % 255) / 255.0f;
+
 		light->specular = Color(0.25f, 0.25f, 0.25f);
-		light->radius = 2.5f;
+		light->radius = 7.5f;
 
 		_lights.push_back(light);
 	}
@@ -214,11 +219,23 @@ void Scene::Render(RenderDevice& device, MatrixStack& matrix_stack)
 
 }
 
-void Scene::BindMaterialUniforms(RenderDevice& device, const Material& material)
+void Scene::BindMaterialUniforms(RenderDevice& device, Entity* entity)
 {
-	device.SetUniform4f("material.ambient",  Vec4(material.ambient.r, material.ambient.g, material.ambient.b, material.ambient.a));
-	device.SetUniform4f("material.diffuse",  Vec4(material.diffuse.r, material.diffuse.g, material.diffuse.b, material.diffuse.a));
-	device.SetUniform4f("material.specular",  Vec4(material.specular.r, material.specular.g, material.specular.b, material.specular.a));
+	if(entity->selected)
+	{
+		// Change the color of the entity to mark it as selected.
+		device.SetUniform4f("material.ambient",  Vec4(0.75f, 0.0f, 0.0f, 1.0f));
+	}
+	else
+	{
+		device.SetUniform4f("material.ambient",  Vec4(	entity->material.ambient.r, entity->material.ambient.g, 
+													entity->material.ambient.b, entity->material.ambient.a));
+	}
+		
+	device.SetUniform4f("material.diffuse",  Vec4(	entity->material.diffuse.r, entity->material.diffuse.g, 
+													entity->material.diffuse.b, entity->material.diffuse.a));
+	device.SetUniform4f("material.specular",  Vec4(	entity->material.specular.r, entity->material.specular.g, 
+													entity->material.specular.b, entity->material.specular.a));
 }
 void Scene::BindLightUniforms(RenderDevice& device)
 {
@@ -270,7 +287,7 @@ void Scene::RenderEntity(RenderDevice& device, MatrixStack& matrix_stack, Entity
 		device.BindShader(entity->material.shader);
 			
 		BindLightUniforms(device);
-		BindMaterialUniforms(device, entity->material);
+		BindMaterialUniforms(device, entity);
 		
 		matrix_stack.Push();
 
@@ -290,6 +307,9 @@ void Scene::RenderEntity(RenderDevice& device, MatrixStack& matrix_stack, Entity
 }
 bool Scene::LoadScene(const char* filename)
 {
+	// Clear previous scene first
+	DestroyAllEntities();
+
 	std::ifstream ifs;
 	ifs.open(filename, std::ifstream::in);
 

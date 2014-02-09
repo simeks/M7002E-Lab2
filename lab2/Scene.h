@@ -24,7 +24,9 @@ struct Entity
 	Vec3 position;
 	Vec3 scale;
 
-	Entity() : rotation(0.0f, 0.0f, 0.0f), position(0.0f, 0.0f, 0.0f), scale(1.0f, 1.0f, 1.0f) {}
+	bool selected; // Specifies if this entity is currently selected.
+
+	Entity() : rotation(0.0f, 0.0f, 0.0f), position(0.0f, 0.0f, 0.0f), scale(1.0f, 1.0f, 1.0f), selected(false) {}
 };
 
 /// Point-light
@@ -78,7 +80,7 @@ public:
 
 private:
 	/// Binds material specific shader uniforms.
-	void BindMaterialUniforms(RenderDevice& device, const Material& material);
+	void BindMaterialUniforms(RenderDevice& device, Entity* entity);
 	/// Binds light specific shader uniforms.
 	void BindLightUniforms(RenderDevice& device);
 
