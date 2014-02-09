@@ -6,7 +6,7 @@
 
 static const char* gradient_vertex_shader_src = " \
 	#version 150 \n\
-	float x;\
+	out float x;\
 	\
 	in vec3 vertex_position; \
 	\
@@ -21,7 +21,7 @@ static const char* gradient_vertex_shader_src = " \
 
 static const char* gradient_fragment_shader_src = " \
 	#version 150 \n\
-	float x; \
+	in float x; \
 	uniform float current_x; \
 	uniform vec4 color; \
 	\
@@ -186,7 +186,6 @@ void ColorPicker::Initialize()
 	_draw_call.index_count = 0;
 	_draw_call.vertex_count = 6; // Rectangle => 6 vertices
 	_draw_call.vertex_offset = 0;
-	_draw_call.vertex_format = vertex_format::VF_POSITION3F;
 	
 	float vertex_data[6*3];
 	int vertex_idx = 0;
@@ -199,7 +198,9 @@ void ColorPicker::Initialize()
 	vertex_data[vertex_idx++] = 1.0f; vertex_data[vertex_idx++] = 1.0f; vertex_data[vertex_idx++] = 0.0f; // Top-right
 	vertex_data[vertex_idx++] = 0.0f; vertex_data[vertex_idx++] = 1.0f; vertex_data[vertex_idx++] = 0.0f; // Top-left
 
-	_draw_call.vertex_buffer = _device->CreateVertexBuffer(6*3*sizeof(float), vertex_data);
+	_draw_call.vertex_array_object = _device->CreateVertexArrayObject();
+	_draw_call.vertex_buffer = _device->CreateVertexBuffer(vertex_format::VF_POSITION3F, _draw_call.vertex_array_object, 
+		6*3*sizeof(float), vertex_data);
 
 	_gradient_shader = _device->CreateShader(gradient_vertex_shader_src, gradient_fragment_shader_src);
 	_simple_shader = _device->CreateShader(simple_vertex_shader_src, simple_fragment_shader_src);
@@ -217,6 +218,7 @@ void ColorPicker::Shutdown()
 {
 	// Cleanup
 
+	_device->ReleaseVertexArrayObject(_draw_call.vertex_array_object);
 	_device->ReleaseHardwareBuffer(_draw_call.vertex_buffer);
 	_draw_call.vertex_buffer = -1;
 

@@ -7,6 +7,9 @@
 #include <windows.h>
 #endif
 
+#undef min
+#undef max
+
 #ifdef PLATFORM_MACOSX
 #include <OpenGL/gl.h> // No GLEW on osx
 #else
@@ -28,5 +31,6 @@
 #include "Debug.h"
 #include "Vector.h"
 #include "Matrix.h"
+
 
 #endif // __COMMON_H__

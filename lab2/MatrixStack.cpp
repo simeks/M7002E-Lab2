@@ -43,10 +43,10 @@ void MatrixStack::SetProjectionMatrix(const Mat4x4& projection_matrix)
 
 void MatrixStack::Translate3f(const Vec3& translation)
 {
-	Mat4x4 rotation_matrix = matrix::CreateTranslation(translation);
+	Mat4x4 translation_matrix = matrix::CreateTranslation(translation);
 
 	State& current_state = _states.top();
-	current_state.model_matrix = matrix::Multiply(current_state.model_matrix, rotation_matrix);
+	current_state.model_matrix = matrix::Multiply(current_state.model_matrix, translation_matrix);
 	_state_dirty = true;
 }
 void MatrixStack::Rotate3f(float head, float pitch, float roll)

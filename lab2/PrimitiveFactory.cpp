@@ -84,9 +84,10 @@ Primitive PrimitiveFactory::CreatePyramid(const Vec3& size)
 
 	// Create the vertex buffer, possible optimization would be to create a shared vertex buffer for the rectangles
 	//	rather than creating a new one for each rectangle.
-	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(6*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_array_object = _render_device->CreateVertexArrayObject();
+	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(vertex_format::VF_POSITION3F_NORMAL3F, primitive.draw_call.vertex_array_object,
+		6*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
 	primitive.draw_call.vertex_offset = 0;
-	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F_NORMAL3F;
 	primitive.draw_call.index_buffer = -1; // Specify that we don't want to use an index buffer
 	
 	primitive.bounding_radius = sqrtf(half_size.x * half_size.x + half_size.y * half_size.y + half_size.z * half_size.z);
@@ -213,10 +214,10 @@ Primitive PrimitiveFactory::CreateCube(const Vec3& size)
 	vertex_data[i++] = half_size.x;		vertex_data[i++] = half_size.y;		vertex_data[i++] = half_size.z; // Top right
 	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;		vertex_data[i++] = normal.z;
 
-
-	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(6*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_array_object = _render_device->CreateVertexArrayObject();
+	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(vertex_format::VF_POSITION3F_NORMAL3F, primitive.draw_call.vertex_array_object,
+		6*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
 	primitive.draw_call.vertex_offset = 0;
-	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F_NORMAL3F;
 	primitive.draw_call.index_buffer = -1; // Specify that we don't want to use an index buffer
 	
 	primitive.bounding_radius = sqrtf(half_size.x * half_size.x + half_size.y * half_size.y + half_size.z * half_size.z);
@@ -256,7 +257,9 @@ Primitive PrimitiveFactory::CreateSphere(float radius)
 			vertex_data[vertex_idx++] = z;
 		}
 	}
-	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(3*2*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_array_object = _render_device->CreateVertexArrayObject();
+	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(vertex_format::VF_POSITION3F_NORMAL3F, primitive.draw_call.vertex_array_object,
+		3*2*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
 
 	// Index data
 	primitive.draw_call.index_count = (ring_count-1) * (sector_count-1) * 6;
@@ -276,9 +279,7 @@ Primitive PrimitiveFactory::CreateSphere(float radius)
 			index_data[index_idx++] = (uint16_t)(r * sector_count + s + 1);
 		}
 	}
-	primitive.draw_call.index_buffer = _render_device->CreateIndexBuffer(primitive.draw_call.index_count, index_data);
-	
-	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F_NORMAL3F;
+	primitive.draw_call.index_buffer = _render_device->CreateIndexBuffer(primitive.draw_call.vertex_array_object, primitive.draw_call.index_count, index_data);
 	
 	primitive.bounding_radius = radius;
 
@@ -315,10 +316,10 @@ Primitive PrimitiveFactory::CreatePlane(const Vec2& size)
 	vertex_data[i++] = half_size.x;		vertex_data[i++] = 0.0f;		vertex_data[i++] = half_size.y; // Top right
 	vertex_data[i++] = normal.x;		vertex_data[i++] = normal.y;	vertex_data[i++] = normal.z;
 	
-
-	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(6*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
+	primitive.draw_call.vertex_array_object = _render_device->CreateVertexArrayObject();
+	primitive.draw_call.vertex_buffer = _render_device->CreateVertexBuffer(vertex_format::VF_POSITION3F_NORMAL3F, primitive.draw_call.vertex_array_object,
+		6*primitive.draw_call.vertex_count*sizeof(float), vertex_data);
 	primitive.draw_call.vertex_offset = 0;
-	primitive.draw_call.vertex_format = vertex_format::VF_POSITION3F_NORMAL3F;
 	primitive.draw_call.index_buffer = -1; // Specify that we don't want to use an index buffer
 
 	primitive.bounding_radius = sqrtf(half_size.x * half_size.x + half_size.y * half_size.y);
@@ -330,4 +331,8 @@ void PrimitiveFactory::DestroyPrimitive(Primitive& primitive)
 	// Delete the buffers that the primitive holds
 
 	_render_device->ReleaseHardwareBuffer(primitive.draw_call.vertex_buffer);
+	if(primitive.draw_call.index_buffer != -1)
+		_render_device->ReleaseHardwareBuffer(primitive.draw_call.index_buffer);
+
+	_render_device->ReleaseVertexArrayObject(primitive.draw_call.vertex_array_object);
 }

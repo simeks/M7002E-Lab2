@@ -16,23 +16,24 @@ static const char* vertex_shader_src = " \
 	in vec3 vertex_position; \
 	in vec3 vertex_normal; \
 	\
-	vec3 normal_view; /* Normal in view-space */ \
-	vec3 position_view; /* Vertex position in view-space */ \
+	out vec3 normal_view; /* Normal in view-space */ \
+	out vec3 position_view; /* Vertex position in view-space */ \
 	\
 	void main() \
 	{ \
 		gl_Position = model_view_projection_matrix * vec4(vertex_position, 1.0); \
 		\
 		/* Transform normals into view-space */ \
-		normal_view = normalize(transpose(inverse(model_view_matrix)) * vec4(normalize(vertex_normal), 0.0)).xyz; \
+		normal_view = (transpose(inverse(model_view_matrix)) * vec4(normalize(vertex_normal), 0.0)).xyz; \
+		normal_view = normalize(normal_view); \
 		position_view = (model_view_matrix * vec4(vertex_position, 1.0)).xyz; \
 	}";
 
 static const char* fragment_shader_src = " \
 	#version 150 \n\
 	#define MAX_LIGHT_COUNT 16 \n\
-	vec3 normal_view; /* Normal in view-space */ \
-	vec3 position_view; /* Vertex position in view space */ \
+	in vec3 normal_view; /* Normal in view-space */ \
+	in vec3 position_view; /* Vertex position in view space */ \
 	uniform mat4 model_view_matrix; \
 	uniform mat4 view_matrix; \
 	\
@@ -197,8 +198,6 @@ void Lab2App::Render(float )
 
 	// Render UI
 	_color_picker->Render();
-
-	Stop();
 }
 
 void Lab2App::OnEvent(SDL_Event* evt)
@@ -467,10 +466,10 @@ void Lab2App::ScaleEntity(Entity* entity, const Vec2& mouse_position, bool y_axi
 
 void Lab2App::RotateEntity(Entity* entity, const Vec2& mouse_position)
 {
-	Vec3 world_position = _scene->ToWorld(mouse_position, _camera, _selection.entity->position.y);
-	Vec3 delta = vector::Subtract(world_position, _selection.entity->position);
-	_selection.entity->rotation.x = delta.x;
-	_selection.entity->rotation.y = delta.z;
+	Vec3 world_position = _scene->ToWorld(mouse_position, _camera, entity->position.y);
+	Vec3 delta = vector::Subtract(world_position, entity->position);
+	entity->rotation.x = delta.x;
+	entity->rotation.y = delta.z;
 }
 
 void Lab2App::SelectEntity(Entity* entity, const Vec2& mouse_position)
