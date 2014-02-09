@@ -41,15 +41,17 @@ Misc:
 - [F2] : Loads a scene from the file "scene.json".
 
 Material/Light properties:
+
 When selecting either a light source or an object a color picker will popup in the lower right corner. This color picker allows you to set material and light properties.
 The first (top) set of gradients selects the ambient color, the second selects the specular color and the third selects the diffuse color.
 
 Saving:
+
 The scene is always saved automatically when the user exits program and then automatically loaded when the user starts the program again.
 The scene is saved to a filed called "scene.json" which should be located in the same folder as the executable. 
 The save-file is formatted in JSON, which is human readable so it's possible to manipulate the saved scene with a basic text editor.
 
-
 Future work:
+
 The biggest problem currently is the lack of precision when selecting objects with a more complex shape, like the pyramid. This is caused by fact that the program uses bounding spheres when selecting entities. Possible solutions for this could be to use more precise bounding volumes, or to use color picking.
 
