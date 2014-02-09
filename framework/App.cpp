@@ -4,7 +4,6 @@
 #include "RenderDevice.h"
 
 #include <SDL.h>
-#include <SDL_opengl.h>
 
 
 App::App()

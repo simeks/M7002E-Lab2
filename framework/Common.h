@@ -11,9 +11,10 @@
 #undef max
 
 #ifdef PLATFORM_MACOSX
-#include <OpenGL/gl.h> // No GLEW on osx
+#include <OpenGL/gl3.h> // No GLEW on osx
 #else
 #include <gl/glew.h>
+#include <SDL_opengl.h>
 #endif
 
 #include <stdint.h>
