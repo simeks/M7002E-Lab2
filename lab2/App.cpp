@@ -105,7 +105,7 @@ bool Lab2App::Initialize()
 		return false;
 
 	SetWindowTitle("OpenGL - Lab 2");
-	_render_device->SetClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	_render_device->SetClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 	glEnable(GL_CULL_FACE); // Enable face culling
 	glEnable(GL_DEPTH_TEST); // Enable depth testing
@@ -385,27 +385,6 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				{
 					Entity* entity = _scene->CreateEntity(Entity::ET_LIGHT);
 					entity->position = world_position;
-				}
-				break;
-			case SDL_SCANCODE_C:
-				{
-					//if(!_selection.entity) // We can't enable the color picker without a selected entity.
-					//	break;
-
-					//if(_selection.mode != Selection::COLOR_PICK)
-					//{
-					//	// Enable color picker
-					//	_selection.mode = Selection::COLOR_PICK;
-					//	_color_picker->Show();
-					//	_color_picker->SetTarget(_selection.entity);
-					//}
-					//else
-					//{
-					//	// Disable color picker
-					//	_selection.mode = Selection::IDLE;
-					//	_color_picker->Hide();
-					//	_color_picker->SetTarget(NULL);
-					//}
 				}
 				break;
 			case SDL_SCANCODE_DELETE:

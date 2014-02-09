@@ -4,7 +4,7 @@
 #include "Scene.h"
 #include "App.h"
 
-static const char* vertex_shader_src = " \
+static const char* gradient_vertex_shader_src = " \
 	varying float x;\
 	\
 	attribute vec3 vertex_position; \
@@ -18,7 +18,7 @@ static const char* vertex_shader_src = " \
 		gl_Position = vec4(scale*vertex_position + offset, 1.0); \
 	}";
 
-static const char* fragment_shader_src = " \
+static const char* gradient_fragment_shader_src = " \
 	varying float x; \
 	uniform float current_x; \
 	uniform vec4 color; \
@@ -30,31 +30,48 @@ static const char* fragment_shader_src = " \
 			gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); \
 	}";
 
+static const char* simple_vertex_shader_src = " \
+	attribute vec3 vertex_position; \
+	\
+	uniform vec3 offset; \
+	uniform vec3 scale; \
+	\
+	void main() \
+	{ \
+		gl_Position = vec4(scale*vertex_position + offset, 1.0); \
+	}";
+
+static const char* simple_fragment_shader_src = " \
+	uniform vec4 color; \
+	void main() \
+	{ \
+		gl_FragColor = color;  \
+	}";
+
 
 
 ColorPicker::ColorPicker(RenderDevice* device, const Viewport& viewport) 
 	: _device(device),
 	_visible(false),
-	_shader(-1),
+	_gradient_shader(-1),
+	_simple_shader(-1),
 	_viewport_size((float)viewport.width, (float)viewport.height)
 {
-	Setup();
+	Initialize();
 }
 ColorPicker::~ColorPicker()
 {
+	Shutdown();
 }
 void ColorPicker::Render()
 {
 	if(!_visible)
 		return;
 
-	_device->BindShader(_shader);
+	RenderGradients(_ambient_gradient);
+	RenderGradients(_specular_gradient);
+	RenderGradients(_diffuse_gradient);
 
-	RenderGradients(_ambient_gradient, *_ambient_gradient.target);
-	RenderGradients(_specular_gradient, *_specular_gradient.target);
-	RenderGradients(_diffuse_gradient, *_diffuse_gradient.target);
-
-	_device->BindShader(-1);
 }
 
 void ColorPicker::SetTarget(Entity* target)
@@ -154,7 +171,7 @@ bool ColorPicker::Visible() const
 	return _visible;
 }
 
-void ColorPicker::Setup()
+void ColorPicker::Initialize()
 {
 	_draw_call.draw_mode = GL_TRIANGLES;
 	_draw_call.index_buffer = -1;
@@ -176,7 +193,8 @@ void ColorPicker::Setup()
 
 	_draw_call.vertex_buffer = _device->CreateVertexBuffer(6*3*sizeof(float), vertex_data);
 
-	_shader = _device->CreateShader(vertex_shader_src, fragment_shader_src);
+	_gradient_shader = _device->CreateShader(gradient_vertex_shader_src, gradient_fragment_shader_src);
+	_simple_shader = _device->CreateShader(simple_vertex_shader_src, simple_fragment_shader_src);
 	
 	_gradient_size.x = 300;
 	_gradient_size.y = 90;
@@ -187,44 +205,73 @@ void ColorPicker::Setup()
 	_diffuse_gradient.position = Vec2(x, 10);
 
 }
-void ColorPicker::RenderGradients(const Gradients& gradients, const Color& current_value)
+void ColorPicker::Shutdown()
 {
+	// Cleanup
+
+	_device->ReleaseHardwareBuffer(_draw_call.vertex_buffer);
+	_draw_call.vertex_buffer = -1;
+
+	_device->ReleaseShader(_gradient_shader);
+	_gradient_shader = -1;
+	_device->ReleaseShader(_simple_shader);
+	_simple_shader = -1;
+}
+void ColorPicker::RenderGradients(const Gradients& gradients)
+{
+	const Color& current_value = *gradients.target;
+
 	// Transform pixel coordinates to [-1, 1]
 	Vec3 offset = Vec3(	2.0f * (gradients.position.x / _viewport_size.x) - 1.0f, 
 						2.0f * (gradients.position.y / _viewport_size.y)  - 1.0f, 0);
 
 	Vec3 scale = Vec3(	2.0f * (_gradient_size.x / _viewport_size.x), 
-						2.0f * (_gradient_size.y / _viewport_size.y) / 3.0f, 0);
+						2.0f * (_gradient_size.y / _viewport_size.y) / 3.0f, 1.0f);
+	
+	// Draw the resulting color to the right of the sliders
+	{
+		_device->BindShader(_simple_shader);
 
+		// 20 pixels wide and same height as the three gradients.
+		Vec3 result_scale = Vec3(2.0f * 20.0f / _viewport_size.x, scale.y * 3.0f, 1.0f);
+		_device->SetUniform3f("scale", result_scale);
+		
+		// Should be positioned 10 pixels to the right of the gradients.
+		Vec3 result_offset =  Vec3(2.0f * ((gradients.position.x + _gradient_size.x + 10.0f) / _viewport_size.x) - 1.0f, offset.y, 0.0f);
+		_device->SetUniform3f("offset", result_offset);
 
-	_device->SetUniform3f("scale", Vec3(scale.x, scale.y, 1.0f));
+		_device->SetUniform4f("color", Vec4(current_value.r, current_value.g, current_value.b, 1.0f));
+	
+		_device->Draw(_draw_call);
+	}
+
+	_device->BindShader(_gradient_shader);
+
+	_device->SetUniform3f("scale", scale);
+
 	// Blue
-	{
-		_device->SetUniform4f("color", Vec4(0.0f, 0.0f, 1.0f, 1.0f));
-		_device->SetUniform3f("offset", offset);
-		_device->SetUniform1f("current_x", current_value.b);
+	_device->SetUniform4f("color", Vec4(0.0f, 0.0f, 1.0f, 1.0f));
+	_device->SetUniform3f("offset", offset);
+	_device->SetUniform1f("current_x", current_value.b);
 
-		_device->Draw(_draw_call);
+	_device->Draw(_draw_call);
 
-		offset.y = offset.y + scale.y;
-	}
+	offset.y = offset.y + scale.y;
+
 	// Green
-	{
-		_device->SetUniform4f("color", Vec4(0.0f, 1.0f, 0.0f, 1.0f));
-		_device->SetUniform3f("offset", offset);
-		_device->SetUniform1f("current_x", current_value.g);
+	_device->SetUniform4f("color", Vec4(0.0f, 1.0f, 0.0f, 1.0f));
+	_device->SetUniform3f("offset", offset);
+	_device->SetUniform1f("current_x", current_value.g);
 
-		_device->Draw(_draw_call);
+	_device->Draw(_draw_call);
 
-		offset.y = offset.y + scale.y;
-	}
+	offset.y = offset.y + scale.y;
+
 	// Red
-	{
-		_device->SetUniform4f("color", Vec4(1.0f, 0.0f, 0.0f, 1.0f));
-		_device->SetUniform3f("offset", offset);
-		_device->SetUniform1f("current_x", current_value.r);
+	_device->SetUniform4f("color", Vec4(1.0f, 0.0f, 0.0f, 1.0f));
+	_device->SetUniform3f("offset", offset);
+	_device->SetUniform1f("current_x", current_value.r);
 
-		_device->Draw(_draw_call);
-	}
+	_device->Draw(_draw_call);
 
 }

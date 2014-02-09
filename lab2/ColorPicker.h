@@ -45,8 +45,10 @@ private:
 		Gradients() : target(NULL) {}
 	};
 
-	void Setup();
-	void RenderGradients(const Gradients& gradients, const Color& current_value);
+	void Initialize();
+	void Shutdown();
+
+	void RenderGradients(const Gradients& gradients);
 
 	/// Process the input and check it against the specified gradient set.
 	/// @return True if the gradients was changed, false if not.
@@ -56,7 +58,8 @@ private:
 	bool _visible;
 
 	DrawCall _draw_call; // Shared draw call for all gradients
-	int _shader;
+	int _gradient_shader; // Shader for rendering the gradients
+	int _simple_shader; // Shader for rendering a simple colored rectangle
 
 	Vec2 _viewport_size;
 	Vec2 _gradient_size; // Size of each gradient set in pixels
