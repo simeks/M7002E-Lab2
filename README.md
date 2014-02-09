@@ -3,8 +3,8 @@ M7002E-Lab2
 Simon Ekström
 
 Dependencies:
-SDL: Simple DirectMedia Layer, http://www.libsdl.org/
-GLEW: The OpenGL Extension Wrangler Library, http://glew.sourceforge.net/
+- SDL: Simple DirectMedia Layer, http://www.libsdl.org/
+- GLEW: The OpenGL Extension Wrangler Library, http://glew.sourceforge.net/
 
 Core features:
 - Supported primitives: Pyramids, Cubes, Spheres.
