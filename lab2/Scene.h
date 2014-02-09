@@ -58,7 +58,8 @@ public:
 	Entity* SelectEntity(const Vec2& mouse_position, const Camera& camera);
 
 	/// @brief Converts the specified mouse position to world coordinates.
-	Vec3 ToWorld(const Vec2& mouse_position, const Camera& camera);
+	/// @param height Height above the ground.
+	Vec3 ToWorld(const Vec2& mouse_position, const Camera& camera, float height);
 
 	/// @brief Creates an entity of the specified type and adds it to the scene.
 	Entity* CreateEntity(Entity::EntityType type);

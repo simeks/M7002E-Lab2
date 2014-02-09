@@ -14,6 +14,6 @@ bool RaySphereIntersect(const Vec3& origin, const Vec3& ray, const Vec3& center,
 /// @param ray Vector specifying the direction of the ray.
 /// @param normal The plane normal.
 /// @return The intersection point, this may not be valid as the ray may not intersect.
-Vec3 RayPlaneIntersect(const Vec3& origin, const Vec3& ray, const Vec3& normal);
+Vec3 RayPlaneIntersect(const Vec3& origin, const Vec3& ray, const Vec3& normal, float d);
 
 #endif // __RAY_H__

@@ -30,6 +30,11 @@ float vector::Length(const Vec3& vector)
 	return sqrtf(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
 }
 
+float vector::Length(const Vec2& vector)
+{
+	return sqrtf(vector.x*vector.x + vector.y*vector.y);
+}
+
 Vec3 vector::Cross(const Vec3& lhs, const Vec3& rhs)
 {
 	// Cross product: [Real-Time Rendering, A.19, page 896]
@@ -67,3 +72,7 @@ Vec3 vector::Subtract(const Vec3& lhs, const Vec3& rhs)
 	return Vec3(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
 }
 
+Vec2 vector::Subtract(const Vec2& lhs, const Vec2& rhs)
+{
+	return Vec2(lhs.x - rhs.x, lhs.y - rhs.y);
+}

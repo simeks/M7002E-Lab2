@@ -79,7 +79,7 @@ Entity* Scene::SelectEntity(const Vec2& mouse_position, const Camera& camera)
 	}
 	return NULL;
 }
-Vec3 Scene::ToWorld(const Vec2& mouse_position, const Camera& camera)
+Vec3 Scene::ToWorld(const Vec2& mouse_position, const Camera& camera, float height)
 {
 	// Ray in clip-space
 	Vec4 ray_clip = Vec4(mouse_position.x, mouse_position.y, -1.0f, 1.0f); 
@@ -94,7 +94,7 @@ Vec3 Scene::ToWorld(const Vec2& mouse_position, const Camera& camera)
 	Vec4 ray_world = matrix::Multiply(matrix::Inverse(view), ray_view);
 	vector::Normalize(ray_world);
 
-	return RayPlaneIntersect(camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), Vec3(0.0f, 1.0f, 0.0f));
+	return RayPlaneIntersect(camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), Vec3(0.0f, 1.0f, 0.0f), -height);
 }
 
 Entity* Scene::CreateEntity(Entity::EntityType type)

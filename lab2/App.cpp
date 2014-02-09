@@ -4,6 +4,7 @@
 #include "ColorPicker.h"
 
 #include <framework/RenderDevice.h>
+#include <framework/Ray.h>
 
 #define SCENE_FILE_NAME "scene.json"
 
@@ -241,8 +242,9 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				}
 				_selection.entity->selected = true;
 
-				Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
-				_selection.position = world_position;
+				_selection.position = mouse_position;
+
+				Vec3 world_position = _scene->ToWorld(mouse_position, _camera, _selection.entity->position.y);
 				_selection.offset = vector::Subtract(_selection.entity->position, world_position);
 			}
 			else if(_selection.entity)
@@ -278,54 +280,21 @@ void Lab2App::OnEvent(SDL_Event* evt)
 			}
 			else if(_selection.entity)
 			{
+				// Normalize mouse position ([-1.0, 1.0])
+				Vec2 mouse_position = Vec2(	2.0f * (float)evt->motion.x / (float)_viewport.width - 1.0f,
+											1.0f - (2.0f * (float)evt->motion.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
+
 				if(_selection.mode == Selection::MOVE)
 				{
-					// Normalize mouse position ([-1.0, 1.0])
-					Vec2 mouse_position = Vec2(	2.0f * (float)evt->motion.x / (float)_viewport.width - 1.0f,
-												1.0f - (2.0f * (float)evt->motion.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
-
-					Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
-					if(key_states[SDL_SCANCODE_LCTRL])
-					{
-						_selection.entity->position.y = -vector::Subtract(world_position, _selection.position).z;
-					}
-					else
-					{
-						_selection.entity->position = vector::Add(world_position, _selection.offset);
-					}
+					MoveEntity(_selection.entity, mouse_position, (key_states[SDL_SCANCODE_LCTRL] != 0), _selection.offset);
 				}
 				else if(_selection.mode == Selection::SCALE)
 				{
-					// Normalize mouse position ([-1.0, 1.0])
-					Vec2 mouse_position = Vec2(	2.0f * (float)evt->motion.x / (float)_viewport.width - 1.0f,
-												1.0f - (2.0f * (float)evt->motion.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
-
-					Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
-
-					float distance = vector::Length(vector::Subtract(world_position, _selection.entity->position)) / vector::Length(_selection.offset);
-
-					if(_selection.entity->type == Entity::ET_LIGHT)
-					{
-						// If the scaled entity is a light, scale its light radius rather than the object size
-						Light* light = (Light*)_selection.entity;
-						light->radius = distance;
-					}
-					else
-					{
-						_selection.entity->scale = Vec3(distance, distance, distance);
-					}
+					ScaleEntity(_selection.entity, mouse_position, (key_states[SDL_SCANCODE_LCTRL] != 0), _selection.offset);
 				}
 				else if(_selection.mode == Selection::ROTATE)
 				{
-					// Normalize mouse position ([-1.0, 1.0])
-					Vec2 mouse_position = Vec2(	2.0f * (float)evt->motion.x / (float)_viewport.width - 1.0f,
-												1.0f - (2.0f * (float)evt->motion.y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
-
-					Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
-					Vec3 delta = vector::Subtract(world_position, _selection.entity->position);
-					_selection.entity->rotation.x = delta.x;
-					_selection.entity->rotation.y = delta.z;
-
+					RotateEntity(_selection.entity, mouse_position, (key_states[SDL_SCANCODE_LCTRL] != 0));
 				}
 				// Check if the user tries to drag the color sliders
 				else if(_color_picker->Visible() && evt->motion.state & SDL_BUTTON(1))
@@ -344,7 +313,7 @@ void Lab2App::OnEvent(SDL_Event* evt)
 			Vec2 mouse_position = Vec2(	2.0f * (float)mouse_x / (float)_viewport.width - 1.0f,
 										1.0f - (2.0f * (float)mouse_y / (float)_viewport.height)); // Flip y-axis as OpenGL has y=0 at the bottom.
 
-			Vec3 world_position = _scene->ToWorld(mouse_position, _camera);
+			Vec3 world_position = _scene->ToWorld(mouse_position, _camera, 0.0f);
 
 			switch(evt->key.keysym.scancode)
 			{
@@ -414,4 +383,135 @@ void Lab2App::OnEvent(SDL_Event* evt)
 		}
 		break;
 	};
+}
+void Lab2App::MoveEntity(Entity* entity, const Vec2& mouse_position, bool y_axis, const Vec3& offset)
+{
+	if(y_axis)
+	{
+		// Move the y_axis (and any axis that is the cross product of the y_axis and the camera direction)
+		//	We do this by casting a ray from the mouse position against a plane that is fixed on the y-axis.
+		//	The intersection point will then be the new position for the object.
+
+		Vec4 ray_clip = Vec4(mouse_position.x, mouse_position.y, -1.0f, 1.0f); 
+
+		// Transform ray into view-space
+		Vec4 ray_view = matrix::Multiply(matrix::Inverse(_camera.projection_matrix), ray_clip);
+		ray_view = Vec4(ray_view.x, ray_view.y, -1.0f, 0.0f);
+
+		// Transform ray into world-space
+		Mat4x4 view = matrix::LookAt(_camera.position, vector::Add(_camera.position, _camera.direction), Vec3(0.0f, 1.0f, 0.0f)); // Build the view matrix
+		Vec4 ray_world = matrix::Multiply(matrix::Inverse(view), ray_view);
+		vector::Normalize(ray_world);
+
+		Vec3 plane_normal = vector::Subtract(Vec3(0, 0, 0), _camera.direction);
+		plane_normal.y = 0.0f; // Fix the plane on the y-axis
+
+		// We add an offset to the plane to make sure we're actually moving the object relative to it's previous position and not relative to (0, 0, 0).
+		Vec3 intersection = RayPlaneIntersect(_camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), plane_normal, -vector::Dot(entity->position, plane_normal)); 
+		// We add the saved offset to avoid any popping effect caused by the user not clicking in the absolute middle of the object.
+		entity->position = intersection;
+	}
+	else
+	{
+		// Move the object in the x-axis and the z-axis.
+
+		// Calculate the position in world coordinates
+		Vec3 world_position = _scene->ToWorld(mouse_position, _camera, entity->position.y);
+		// We add the saved offset to avoid any popping effect caused by the user not clicking in the absolute middle of the object.
+		entity->position = vector::Add(world_position, offset);
+	}
+}
+
+void Lab2App::ScaleEntity(Entity* entity, const Vec2& mouse_position, bool y_axis, const Vec3& offset)
+{
+	float offset_len = vector::Length(offset);
+
+	if(entity->type == Entity::ET_LIGHT)
+	{	
+		Vec3 world_position = _scene->ToWorld(mouse_position, _camera, entity->position.y);
+		Vec3 d = vector::Subtract(world_position, entity->position);
+
+		// If the scaled entity is a light, scale its light radius rather than the object size
+		Light* light = (Light*)_selection.entity;
+		light->radius = vector::Length(d);
+	}
+	else if(entity->type == Entity::ET_SPHERE)
+	{
+		// Only allow scaling one axis of the sphere
+
+		Vec3 world_position = _scene->ToWorld(mouse_position, _camera, entity->position.y);
+		Vec3 d = vector::Subtract(world_position, entity->position);
+
+		float r = vector::Length(d);
+		entity->scale = Vec3(r, r, r);
+	}
+	else
+	{
+		if(y_axis)
+		{
+			// Move the y_axis (and any axis that is the cross product of the y_axis and the camera direction)
+			//	We do this by casting a ray from the mouse position against a plane that is fixed on the y-axis.
+			//	The intersection point will then be the new position for the object.
+
+			Vec4 ray_clip = Vec4(mouse_position.x, mouse_position.y, -1.0f, 1.0f); 
+
+			// Transform ray into view-space
+			Vec4 ray_view = matrix::Multiply(matrix::Inverse(_camera.projection_matrix), ray_clip);
+			ray_view = Vec4(ray_view.x, ray_view.y, -1.0f, 0.0f);
+
+			// Transform ray into world-space
+			Mat4x4 view = matrix::LookAt(_camera.position, vector::Add(_camera.position, _camera.direction), Vec3(0.0f, 1.0f, 0.0f)); // Build the view matrix
+			Vec4 ray_world = matrix::Multiply(matrix::Inverse(view), ray_view);
+			vector::Normalize(ray_world);
+
+			Vec3 plane_normal = vector::Subtract(Vec3(0, 0, 0), _camera.direction);
+			plane_normal.y = 0.0f; // Fix the plane on the y-axis
+
+			// We add an offset to the plane to make sure we're actually moving the object relative to it's previous position and not relative to (0, 0, 0).
+			Vec3 intersection = RayPlaneIntersect(_camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), plane_normal, -vector::Dot(entity->position, plane_normal)); 
+			Vec3 d = vector::Subtract(entity->position, intersection);
+
+			entity->scale.y = fabs(d.y) / offset_len;
+		}
+		else
+		{
+			// Move the object in the x-axis and the z-axis.
+
+			// Calculate the position in world coordinates
+			Vec3 world_position = _scene->ToWorld(mouse_position, _camera, entity->position.y);
+			Vec3 d = vector::Subtract(entity->position, world_position);
+
+			entity->scale = Vec3(fabs(d.x) / offset_len, entity->scale.y, fabs(d.z) / offset_len);
+		}
+	}
+}
+
+void Lab2App::RotateEntity(Entity* entity, const Vec2& mouse_position, bool )
+{
+	// Move the y_axis (and any axis that is the cross product of the y_axis and the camera direction)
+	//	We do this by casting a ray from the mouse position against a plane that is fixed on the y-axis.
+	//	The intersection point will then be the new position for the object.
+
+	Vec4 ray_clip = Vec4(mouse_position.x, mouse_position.y, -1.0f, 1.0f); 
+
+	// Transform ray into view-space
+	Vec4 ray_view = matrix::Multiply(matrix::Inverse(_camera.projection_matrix), ray_clip);
+	ray_view = Vec4(ray_view.x, ray_view.y, -1.0f, 0.0f);
+
+	// Transform ray into world-space
+	Mat4x4 view = matrix::LookAt(_camera.position, vector::Add(_camera.position, _camera.direction), Vec3(0.0f, 1.0f, 0.0f)); // Build the view matrix
+	Vec4 ray_world = matrix::Multiply(matrix::Inverse(view), ray_view);
+	vector::Normalize(ray_world);
+
+	Vec3 plane_normal = vector::Subtract(Vec3(0, 0, 0), _camera.direction);
+	plane_normal.y = 0.0f; // Fix the plane on the y-axis
+
+	// We add an offset to the plane to make sure we're actually moving the object relative to it's previous position and not relative to (0, 0, 0).
+	Vec3 intersection = RayPlaneIntersect(_camera.position, Vec3(ray_world.x, ray_world.y, ray_world.z), plane_normal, -vector::Dot(entity->position, plane_normal)); 
+	Vec3 d = vector::Subtract(entity->position, intersection);
+
+	Vec3 world_position = _scene->ToWorld(mouse_position, _camera, _selection.entity->position.y);
+	Vec3 delta = vector::Subtract(world_position, _selection.entity->position);
+	_selection.entity->rotation.x = delta.x;
+	_selection.entity->rotation.y = delta.z;
 }

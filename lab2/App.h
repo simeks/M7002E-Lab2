@@ -38,8 +38,23 @@ protected:
 	/// @brief Callback invoked once every frame to let the application perform rendering.
 	void Render(float dtime);
 
+	/// @brief Callback for when receiving SDL events.
 	void OnEvent(SDL_Event* evt);
 	
+	/// @brief Move the specified entity
+	/// @param y_axis Specifies if the object should be moved in the y-axis.
+	/// @param offset Offset from the object origin and the mouse position (In world space).
+	void MoveEntity(Entity* entity, const Vec2& mouse_position, bool y_axis, const Vec3& offset);
+
+	/// @brief Scales the specified entity
+	/// @param y_axis Specifies if the object should be scaled in the y-axis.
+	/// @param offset Offset from the object origin and the mouse position (In world space).
+	void ScaleEntity(Entity* entity, const Vec2& mouse_position, bool y_axis, const Vec3& offset);
+	
+	/// @brief Rotates the specified entity
+	/// @param y_axis Specifies if the object should be rotated in the y-axis.
+	void RotateEntity(Entity* entity, const Vec2& mouse_position, bool y_axis);
+
 private:
 	struct Selection
 	{
@@ -54,7 +69,7 @@ private:
 		Entity* entity; // Selected entity, NULL if none is selected
 		Mode mode;
 
-		Vec3 position;
+		Vec2 position; // Mouse position when the entity was selected
 		Vec3 offset; // Offset from entity center to mouse position
 
 		Selection() : entity(NULL), mode(IDLE) {}

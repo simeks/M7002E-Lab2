@@ -15,9 +15,9 @@ bool RaySphereIntersect(const Vec3& origin, const Vec3& ray, const Vec3& center,
 	return (bb_c >= 0);
 }
 
-Vec3 RayPlaneIntersect(const Vec3& origin, const Vec3& ray, const Vec3& normal)
+Vec3 RayPlaneIntersect(const Vec3& origin, const Vec3& ray, const Vec3& normal, float d)
 {
-	float t = -(vector::Dot(origin, normal) / vector::Dot(ray, normal));
+	float t = -((vector::Dot(origin, normal) + d) / vector::Dot(ray, normal));
 
 	return vector::Add(origin, Vec3(ray.x * t, ray.y * t, ray.z * t));
 }
