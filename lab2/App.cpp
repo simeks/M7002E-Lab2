@@ -302,6 +302,7 @@ void Lab2App::OnEvent(SDL_Event* evt)
 				break;
 			case SDL_SCANCODE_F2:
 				{
+					UnselectEntity(); // Unselect the current entity, as it may not exist in the loaded world.
 					_scene->LoadScene(SCENE_FILE_NAME);
 				}
 				break;
