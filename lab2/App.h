@@ -61,6 +61,8 @@ private:
 	MatrixStack _matrix_stack;
 	Viewport _viewport;
 	Camera _camera;
+	float _camera_angle;
+
 
 	PrimitiveFactory* _primitive_factory;
 	Scene* _scene;

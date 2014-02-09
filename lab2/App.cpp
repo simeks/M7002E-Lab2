@@ -63,7 +63,7 @@ static const char* fragment_shader_src = " \
 	}";
 
 
-Lab2App::Lab2App() : _primitive_factory(NULL)
+Lab2App::Lab2App() : _primitive_factory(NULL), _camera_angle(0.0f)
 {
 }
 Lab2App::~Lab2App()
@@ -127,13 +127,9 @@ void Lab2App::Shutdown()
 
 	ShutdownSDL();
 }
-void Lab2App::Render(float a)
+void Lab2App::Render(float )
 {
-	static float camera_angle = 0.0f;
-	camera_angle = camera_angle + 0.0f * a;
-	
-	_camera.position = Vec3(20.0f*sinf(camera_angle), 10.0f, 20.0f*cosf(camera_angle));
-	_camera.position = Vec3(0.0f, 15.0f, 35.0f);
+	_camera.position = Vec3(35.0f*sinf(_camera_angle), 15.0f, 35.0f*cosf(_camera_angle));
 	_camera.direction = vector::Subtract(Vec3(0.0f, 0.0f, 0.0f), _camera.position);
 	vector::Normalize(_camera.direction);
 
@@ -207,7 +203,11 @@ void Lab2App::OnEvent(SDL_Event* evt)
 		break;
 	case SDL_MOUSEMOTION:
 		{
-			if(_selection.entity)
+			if(key_states[SDL_SCANCODE_C])
+			{
+				_camera_angle += evt->motion.xrel * 0.01f;
+			}
+			else if(_selection.entity)
 			{
 				if(_selection.mode == Selection::MOVE)
 				{
